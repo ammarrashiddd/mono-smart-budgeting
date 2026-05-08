@@ -1,10 +1,124 @@
 export default function Home() {
   return (
-    <div>
-      <header className="h-20 px-6 bg-secondary flex items-center justify-between">
+    <div className="bg-primary">
+      <header className="h-20 px-6 bg-secondary flex items-center justify-between mb-10">
         <h1 className="text-primary text-5xl font-bold">MONO</h1>
-        <p className="text-lg font-medium">bajingan</p>
+        <div>
+          <button className="bg-primary text-secondary font-bold px-4 py-2 hover:underline-offset-4 hover:underline rounded-sm hover:cursor-pointer mr-4 transition-all duration-100 ease-in-out">
+            Sign In
+          </button>
+          <button className="bg-scondary text-primary font-bold px-4 py-2 hover:underline-offset-4 hover:underline hover:cursor-pointer transition-all duration-100 ease-in-out">
+            Get started
+          </button>
+        </div>
       </header>
+
+      <body>
+        <div className="px-6">
+          {/* Label Section - Minimalist Badge */}
+          <div className="inline-block px-6 py-1.5 mb-4 border-2 border-secondary rounded-md">
+            <span className="text-md font-bold text-secondary">About Mono</span>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-16">
+            {/* Kiri: Hero & Deskripsi Utama */}
+            <div className="flex-1 flex flex-col">
+              <h1 className="text-6xl lg:text-7xl font-extrabold tracking-tighter leading-[1.1] mb-8">
+                Built for <br />
+                <span className="text-secondary">Smart Budgeting</span>
+              </h1>
+              <p className="max-w-xl text-lg lg:text-xl text-secondary leading-relaxed font-medium">
+                Platform manajemen keuangan personal berbasis web yang
+                mengintegrasikan <span>Machine Learning</span> dan{" "}
+                <span>Generative AI </span>
+                untuk mentransformasi data mentah menjadi wawasan strategis.
+              </p>
+              <div className="mt-12 p-6 rounded-2xl italic text-secondary">
+                "Bekerja secara dinamis menggunakan pendekatan Unsupervised
+                Learning untuk memahami perilaku belanja unik setiap pengguna."
+              </div>
+            </div>
+
+            {/* Kanan: Card Body - Modern Bento Style */}
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Card 1: Optimal Cluster */}
+              <div className="group p-6 rounded-3xl bg-secondary border text-primary border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold uppercase tracking-widest mb-2">
+                      Analysis 01
+                    </h4>
+                    <h3 className="text-2xl font-bold mb-3">
+                      Optimal Cluster Validation
+                    </h3>
+                    <p className="text-sm leading-relaxed">
+                      Menggunakan Metode Elbow untuk menentukan jumlah klaster
+                      (K) yang paling objektif secara matematis.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-40 h-28 overflow-hidden rounded-xl bg-slate-100">
+                    <img
+                      src="/assets/images/1.jpg"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      alt="Visualisasi Data"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Algorithm Benchmarking - Dark Accent */}
+              <div className="group p-6 rounded-3xl bg-secondary text-primary shadow-xl">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold uppercase tracking-widest mb-2">
+                      Analysis 02
+                    </h4>
+                    <h3 className="text-2xl font-bold mb-3">
+                      Algorithm Benchmarking
+                    </h3>
+                    <p className="text-sm leading-relaxed">
+                      Komparasi K-Means dan DBSCAN untuk menyeimbangkan
+                      kecepatan dan deteksi transaksi tidak lazim.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-40 h-28 overflow-hidden rounded-xl bg-blue-900/50">
+                    <img
+                      src="/assets/images/2.jpg"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      alt="Benchmarking"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Financial Standard */}
+              <div className="group p-6 rounded-3xl bg-secondary text-primary shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold uppercase tracking-widest mb-2">
+                      Analysis 03
+                    </h4>
+                    <h3 className="text-2xl font-bold mb-3">
+                      Financial Standard Alignment
+                    </h3>
+                    <p className="text-sm leading-relaxed">
+                      Integrasi aturan 50/30/20 ke dalam AI untuk memastikan
+                      saran manajerial yang profesional.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-40 h-28 overflow-hidden rounded-xl bg-slate-100">
+                    <img
+                      src="/assets/images/3.jpg"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      alt="Standard"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
     </div>
   );
 }
