@@ -12,13 +12,11 @@ interface AuthFormData {
 }
 
 export default function AuthForm({
-  labelling,
-  subLabel,
-  mode = "signin", // Tambahkan prop mode: 'signin' | 'signup'
+  mode = "signin",
+  setMode,
 }: {
-  labelling: string;
-  subLabel: string;
   mode?: "signin" | "signup";
+  setMode: (mode: boolean) => void;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -47,8 +45,14 @@ export default function AuthForm({
   return (
     <main className="w-full">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900">{labelling}</h2>
-        <p className="text-gray-500 mt-2">{subLabel}</p>
+        <h2 className="text-3xl font-bold text-secondary">
+          {mode === "signin" ? "Sign In" : "Sign Up"}
+        </h2>
+        <p className="text-gray-500 mt-2">
+          {mode === "signin"
+            ? "Welcome back! Please enter your details"
+            : "Create your account to get started"}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

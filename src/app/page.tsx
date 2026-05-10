@@ -13,12 +13,12 @@ export default function Home() {
         <div className="flex gap-2 md:gap-4">
           <Link
             className="text-primary font-bold px-4 py-2 hover:bg-primary/10 rounded-full transition-all text-sm md:text-base"
-            href="/auth/signin"
+            href="/auth"
           >
             Sign In
           </Link>
           <Link
-            href="/auth/signup"
+            href="/auth"
             className="bg-primary text-secondary font-bold px-5 py-2 rounded-full hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
           >
             Get started
