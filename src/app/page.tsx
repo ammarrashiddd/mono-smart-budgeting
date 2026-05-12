@@ -1,29 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import Navbar from "@/components/nav/Navbar";
 
 export default function Home() {
   return (
     <div className="bg-primary">
       {/* header */}
-      <nav className="h-20 mb-15 px-6 md:px-12 bg-tertiary flex items-center justify-between shadow-sm">
-        <h1 className="text-primary text-3xl md:text-4xl font-black tracking-tighter">
-          MONO.
-        </h1>
-        <div className="flex gap-2 md:gap-4">
-          <Link
-            className="text-primary font-bold px-4 py-2 hover:bg-primary/10 rounded-full transition-all text-sm md:text-base"
-            href="/auth"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/auth"
-            className="bg-primary text-secondary font-bold px-5 py-2 rounded-full hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
-          >
-            Get started
-          </Link>
-        </div>
+      <nav className="h-20 mb-15 px-6 md:px-12 bg-tertiary flex items-center shadow-sm">
+        <Navbar />
       </nav>
 
       <main>

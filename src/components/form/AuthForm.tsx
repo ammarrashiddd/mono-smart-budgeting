@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { Eye, EyeSlash } from "@phosphor-icons/react"; // Pastikan nama icon benar
+import { useRouter } from "next/navigation";
 
 interface AuthFormData {
   username: string;
@@ -16,7 +17,7 @@ export default function AuthForm({
   setMode,
 }: {
   mode?: "signin" | "signup";
-  setMode: (mode: boolean) => void;
+  setMode: (mode: "signin" | "signup") => void;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -35,11 +36,24 @@ export default function AuthForm({
     },
   });
 
-  const password = watch("password"); // Mengawasi isi password utama
+  const password = watch("password");
+  const router = useRouter();
 
   const onSubmit = (data: AuthFormData) => {
     console.log("Form Data:", data);
-    alert(`Success in ${mode} mode!`);
+    // Simulasi proses autentikasi
+    setTimeout(() => {
+      alert(
+        mode === "signin"
+          ? "Successfully signed in!"
+          : "Account created successfully!",
+      );
+      if (mode === "signup") {
+        setMode("signin");
+      } else if (mode === "signin") {
+        router.push("/dashboard");
+      }
+    }, 1000);
   };
 
   return (
