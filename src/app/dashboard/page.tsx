@@ -74,34 +74,6 @@ export default function DashboardPage() {
             />
           </div>
         </div>
-
-        {/* New Goal Action & AI Insights */}
-        <div className="flex-1 flex flex-col gap-6">
-          <div className="bg-tertiary rounded-3xl p-8 text-primary shadow-2xl shadow-tertiary/20 group relative overflow-hidden">
-            <div className="relative z-10">
-              <h3 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">
-                AI Advisor
-              </h3>
-              <p className="text-lg font-bold leading-tight">
-                "You can reach your Emergency Fund 2 months faster by reducing
-                your 'Wants' cluster."
-              </p>
-            </div>
-            {/* Dekorasi halus di background card AI */}
-            <div className="absolute -right-4 -bottom-4 opacity-20 transform group-hover:scale-110 transition-transform">
-              <TargetIcon size={120} weight="fill" />
-            </div>
-          </div>
-
-          <button className="flex-1 border-2 border-dashed border-tertiary/20 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 text-tertiary/60 hover:border-tertiary hover:text-tertiary hover:bg-tertiary/5 transition-all group">
-            <div className="p-3 bg-tertiary/5 rounded-full group-hover:scale-110 transition-all">
-              <Plus size={24} weight="bold" />
-            </div>
-            <span className="text-xs font-black uppercase tracking-widest">
-              Add New Goal
-            </span>
-          </button>
-        </div>
       </div>
     </div>
   );
