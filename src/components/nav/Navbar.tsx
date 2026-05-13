@@ -8,6 +8,7 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const isDashboard = pathname.startsWith("/dashboard");
+
   return (
     <main className="flex items-center justify-between w-full">
       <h1 className="text-primary text-3xl md:text-4xl font-black tracking-tighter">
