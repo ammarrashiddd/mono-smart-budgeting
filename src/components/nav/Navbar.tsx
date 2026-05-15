@@ -18,20 +18,25 @@ export default function Navbar() {
 
   return (
     <main className="flex items-center justify-between w-full">
-      <h1 className="text-primary text-3xl md:text-4xl font-black tracking-tighter">
+      {/* Logo: Ukuran lebih adaptif agar tidak memakan tempat di HP */}
+      <h1
+        onClick={() => Router.push("/")}
+        className="text-primary text-2xl md:text-4xl font-black tracking-tighter cursor-pointer select-none"
+      >
         MONO.
       </h1>
-      <div className="flex gap-2 md:gap-4">
+
+      <div className="flex items-center gap-1.5 md:gap-4">
         {isDashboard ? (
           <>
             <div className="relative">
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 bg-primary text-secondary px-5 py-2 rounded-full text-sm font-bold hover:opacity-90 transition-all active:scale-95"
+                className="flex items-center gap-2 bg-primary text-secondary px-4 md:px-5 py-2 rounded-full text-[12px] md:text-sm font-black hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/10"
               >
-                Ammar
-                <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center">
-                  <User size={14} weight="bold" />
+                <span className="max-w-17.5 md:max-w-none truncate">Ammar</span>
+                <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+                  <User size={12} weight="bold" />
                 </div>
               </button>
 
@@ -43,10 +48,10 @@ export default function Navbar() {
                     onClick={() => setIsOpen(false)}
                   ></div>
 
-                  <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200">
+                  <div className="absolute right-0 mt-3 w-40 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 py-2 animate-in fade-in zoom-in duration-200">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 font-bold hover:bg-red-50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 font-bold hover:bg-red-50 transition-colors text-left"
                     >
                       <SignOut size={18} weight="bold" />
                       Logout
@@ -58,8 +63,9 @@ export default function Navbar() {
           </>
         ) : (
           <>
+            {/* Sign In: Menggunakan text-xs di mobile agar muat satu baris */}
             <button
-              className="text-primary font-bold px-4 py-2 hover:bg-primary/10 rounded-full transition-all text-sm md:text-base"
+              className="text-primary font-black px-3 md:px-4 py-2 hover:bg-primary/10 rounded-full transition-all text-xs md:text-base whitespace-nowrap"
               onClick={() => {
                 Router.push("/auth?mode=signin");
               }}
@@ -67,7 +73,7 @@ export default function Navbar() {
               Sign In
             </button>
             <button
-              className="bg-primary text-secondary font-bold px-5 py-2 rounded-full hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
+              className="bg-primary text-secondary font-black px-4 md:px-6 py-2 rounded-full hover:scale-105 active:scale-95 transition-all text-xs md:text-base shadow-lg shadow-primary/10 whitespace-nowrap"
               onClick={() => {
                 Router.push("/auth?mode=signup");
               }}
