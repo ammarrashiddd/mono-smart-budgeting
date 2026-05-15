@@ -152,7 +152,7 @@ export default function Home() {
                   <h4 className="text-lg font-bold mb-2">Clustering</h4>
                   <p className="text-xs md:text-sm opacity-60 leading-relaxed font-medium">
                     Algoritma K-Means mengelompokkan pengeluaran ke dalam
-                    kategori Lifestyle, Needs, dan Bills secara otomatis.
+                    kategori Hemat, Wajar, Boros secara otomatis.
                   </p>
                 </div>
 

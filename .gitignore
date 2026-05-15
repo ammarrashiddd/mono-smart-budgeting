@@ -62,3 +62,5 @@ next-env.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+/src/generated/prisma
