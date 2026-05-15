@@ -7,7 +7,7 @@ export default function GoalItems({ name, target, current }: any) {
         <p className="text-xs font-black text-tertiary uppercase tracking-tighter">
           {Math.round(progress)}%{" "}
           <span className="mx-1 text-secondary/20">•</span> Rp{" "}
-          {current.toLocaleString()}
+          {new Intl.NumberFormat("id-ID").format(current)}
         </p>
       </div>
       <div className="h-2.5 w-full bg-secondary/5 rounded-full overflow-hidden">
