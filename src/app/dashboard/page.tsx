@@ -11,9 +11,37 @@ import {
   WarningCircle,
   Lightning,
   PaperPlaneRight,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
+  const transactions = [
+    {
+      id: 1,
+      name: "Starbucks Coffee",
+      date: "15 May 2026",
+      category: "Lifestyle",
+      amount: -55000,
+      type: "expense",
+    },
+    {
+      id: 2,
+      name: "Listrik & Air",
+      date: "05 May 2026",
+      category: "Bills",
+      amount: -450000,
+      type: "expense",
+    },
+    {
+      id: 3,
+      name: "Subscription Netflix",
+      date: "10 May 2026",
+      category: "Entertainment",
+      amount: -186000,
+      type: "expense",
+    },
+  ];
   return (
     <div className="bg-primary min-h-screen w-full pb-10 md:pb-20 text-secondary overflow-x-hidden">
       <nav className="h-16 md:h-20 px-4 md:px-12 bg-tertiary flex items-center border-b border-tertiary/10 shadow-sm sticky top-0 z-50">
@@ -81,7 +109,60 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* --- Section 3: Machine Learning (Responsive Split View) --- */}
+      {/* --- Section 3: Transaction History (Baru) --- */}
+      <div className="px-6 md:px-12 mt-10 md:mt-16">
+        <div className="bg-white rounded-lg p-6 md:p-10 border border-secondary/5 shadow-xl shadow-secondary/5">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-secondary">
+              Expenses
+            </h3>
+            <button className="text-tertiary text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline transition-all whitespace-nowrap">
+              Manage Expenses
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {transactions.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-3 md:p-4 rounded-xl hover:bg-secondary/2 transition-all border border-transparent hover:border-secondary/5"
+              >
+                <div className="flex items-center gap-3 md:gap-4">
+                  {/* Info */}
+                  <div className="max-w-30 sm:max-w-none">
+                    <p className="text-sm md:text-base font-bold text-secondary tracking-tight truncate">
+                      {item.name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter text-tertiary bg-tertiary/5 px-1.5 py-0.5 rounded">
+                        {item.category}
+                      </span>
+                      <span className="text-[8px] md:text-[9px] font-medium text-secondary/30 hidden sm:block">
+                        {item.date}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amount */}
+                <div className="text-right">
+                  <p
+                    className={`text-sm md:text-lg font-black tracking-tighter ${item.type === "income" ? "text-green-600" : "text-secondary"}`}
+                  >
+                    {item.type === "income" ? "+" : ""}
+                    {new Intl.NumberFormat("id-ID").format(item.amount)}
+                  </p>
+                  <p className="text-[8px] md:text-[9px] font-bold text-secondary/20 uppercase tracking-widest">
+                    IDR
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* --- Section 4: Machine Learning (Responsive Split View) --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 px-6 md:px-12 mt-10 md:mt-16">
         {/* K-Means */}
         <div className="bg-white rounded-lg p-6 md:p-8 border border-secondary/5 shadow-sm">
@@ -121,7 +202,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* --- Section 4: AI Strategy Analysis (Advanced Responsive Layout) --- */}
+      {/* --- Section 5: AI Strategy Analysis (Advanced Responsive Layout) --- */}
       <div className="px-6 md:px-12 mt-10 md:mt-16">
         <div className="bg-secondary rounded-lg p-6 sm:p-8 md:p-12 text-primary shadow-2xl shadow-secondary/20 relative overflow-hidden group">
           <div className="relative z-10 flex flex-col xl:flex-row justify-between gap-8 md:gap-12">
