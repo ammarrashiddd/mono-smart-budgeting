@@ -2,13 +2,13 @@
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { Eye, EyeSlash } from "@phosphor-icons/react"; // Pastikan nama icon benar
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 
 interface AuthFormData {
   username: string;
   password: string;
-  confirmPassword?: string; // Opsional karena hanya ada di sign up
+  confirmPassword?: string;
   agree: boolean;
 }
 
@@ -25,7 +25,7 @@ export default function AuthForm({
   const {
     register,
     handleSubmit,
-    watch, // Digunakan untuk memvalidasi repeat password
+    watch,
     formState: { errors },
   } = useForm<AuthFormData>({
     defaultValues: {
@@ -41,7 +41,6 @@ export default function AuthForm({
 
   const onSubmit = (data: AuthFormData) => {
     console.log("Form Data:", data);
-    // Simulasi proses autentikasi
     setTimeout(() => {
       alert(
         mode === "signin"
@@ -57,32 +56,36 @@ export default function AuthForm({
   };
 
   return (
-    <main className="w-full">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-secondary">
+    <main className="w-full max-w-md mx-auto px-2">
+      {" "}
+      {/* Container tambahan untuk mobile */}
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-2xl md:text-3xl font-black text-secondary tracking-tighter">
           {mode === "signin" ? "Sign In" : "Sign Up"}
         </h2>
-        <p className="text-gray-500 mt-2">
+        <p className="text-gray-500 mt-2 text-sm md:text-base font-medium">
           {mode === "signin"
             ? "Welcome back! Please enter your details"
             : "Create your account to get started"}
         </p>
       </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4 md:space-y-5"
+      >
         {/* Username Field */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
             Username
           </label>
           <input
             {...register("username", { required: "Username is required" })}
             type="text"
             placeholder="Enter your username..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
           />
           {errors.username && (
-            <p className="text-red-500 text-sm mt-1">
+            <p className="text-red-500 text-[10px] md:text-sm mt-1 font-bold">
               {errors.username.message}
             </p>
           )}
@@ -90,7 +93,7 @@ export default function AuthForm({
 
         {/* Password Field */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
             Password
           </label>
           <div className="relative">
@@ -98,27 +101,31 @@ export default function AuthForm({
               {...register("password", { required: "Password is required" })}
               type={showPassword ? "text" : "password"}
               placeholder="••••••••••••"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-secondary transition-colors"
             >
-              {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+              {showPassword ? (
+                <EyeSlash size={18} weight="bold" />
+              ) : (
+                <Eye size={18} weight="bold" />
+              )}
             </button>
           </div>
           {errors.password && (
-            <p className="text-red-500 text-sm mt-1">
+            <p className="text-red-500 text-[10px] md:text-sm mt-1 font-bold">
               {errors.password.message}
             </p>
           )}
         </div>
 
-        {/* REPEAT PASSWORD FIELD (Hanya muncul jika mode === 'signup') */}
+        {/* REPEAT PASSWORD FIELD */}
         {mode === "signup" && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
               Repeat Password
             </label>
             <div className="relative">
@@ -130,23 +137,23 @@ export default function AuthForm({
                 })}
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-secondary transition-colors"
               >
                 {showConfirmPassword ? (
-                  <EyeSlash size={18} />
+                  <EyeSlash size={18} weight="bold" />
                 ) : (
-                  <Eye size={18} />
+                  <Eye size={18} weight="bold" />
                 )}
               </button>
             </div>
 
             {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-red-500 text-[10px] md:text-sm mt-1 font-bold">
                 {errors.confirmPassword.message}
               </p>
             )}
@@ -155,30 +162,37 @@ export default function AuthForm({
 
         {/* Terms Checkbox */}
         <div className="flex flex-col">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <input
               {...register("agree", {
                 required: "You must agree to the terms",
               })}
               type="checkbox"
               id="agree"
-              className="w-4 h-4 rounded text-blue-600"
+              className="w-4 h-4 md:w-5 md:h-5 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
             />
-            <label htmlFor="agree" className="text-sm text-gray-600">
+            <label
+              htmlFor="agree"
+              className="text-xs md:text-sm text-gray-600 cursor-pointer select-none"
+            >
               I agree to the{" "}
-              <span className="font-semibold border-b">Terms & Privacy</span>
+              <span className="font-bold border-b-2 border-blue-500/20 text-secondary">
+                Terms & Privacy
+              </span>
             </label>
           </div>
 
           {errors.agree && (
-            <p className="text-red-500 text-sm mt-1">{errors.agree.message}</p>
+            <p className="text-red-500 text-[10px] md:text-sm mt-1 font-bold">
+              {errors.agree.message}
+            </p>
           )}
         </div>
 
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base font-black py-3.5 md:py-4 rounded-xl md:rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-2"
         >
           {mode === "signin" ? "Log in" : "Create Account"}
         </button>
