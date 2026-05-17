@@ -79,11 +79,11 @@ export default function Home() {
                       Analysis 02
                     </h4>
                     <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">
-                      Algorithm Benchmarking
+                      Hybrid Financial Pattern Analysis
                     </h3>
                     <p className="text-xs md:text-sm leading-relaxed opacity-80">
-                      Komparasi K-Means dan DBSCAN untuk menyeimbangkan
-                      kecepatan dan deteksi transaksi tidak lazim.
+                      Panel dashboard yang mengombinasikan kalkulasi statistik
+                      riil dengan label User Persona hasil klastering K-Means.
                     </p>
                   </div>
                   <div className="w-full sm:w-32 md:w-40 h-24 md:h-28 overflow-hidden rounded-xl bg-blue-900/50 shrink-0">
@@ -123,6 +123,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+
         {/* --- Section: The Workflow (System Pipeline) --- */}
         <div className="px-6 md:px-12 mt-16 md:mt-24">
           <div className="bg-secondary text-primary rounded-xl p-8 md:p-16 overflow-hidden relative">
@@ -132,57 +133,71 @@ export default function Home() {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8">
-                {/* Step 1 */}
+                {/* Step 1: Ingestion & Financial Metrics */}
                 <div className="group">
                   <div className="text-3xl md:text-4xl font-black text-tertiary mb-3 md:mb-4 transition-transform group-hover:-translate-y-2 duration-300">
                     01
                   </div>
-                  <h4 className="text-lg font-bold mb-2">Ingestion</h4>
+                  <h4 className="text-lg font-bold mb-2">
+                    Ingestion & Metrics
+                  </h4>
                   <p className="text-xs md:text-sm opacity-60 leading-relaxed font-medium">
-                    Data transaksi mentah diunggah dan dibersihkan melalui tahap
-                    *preprocessing* untuk menghilangkan noise.
+                    Data transaksi mentah di-ingest secara real-time untuk
+                    mengekstrak metrik finansial riil seperti akumulasi total
+                    pemasukan, pengeluaran, sisa saldo, dan pos anggaran
+                    terbesar.
                   </p>
                 </div>
 
-                {/* Step 2 */}
+                {/* Step 2: Elbow Optimization */}
                 <div className="group">
                   <div className="text-3xl md:text-4xl font-black text-tertiary mb-3 md:mb-4 transition-transform group-hover:-translate-y-2 duration-300">
                     02
                   </div>
-                  <h4 className="text-lg font-bold mb-2">Clustering</h4>
+                  <h4 className="text-lg font-bold mb-2">Elbow Optimization</h4>
                   <p className="text-xs md:text-sm opacity-60 leading-relaxed font-medium">
-                    Algoritma K-Means mengelompokkan pengeluaran ke dalam
-                    kategori Hemat, Wajar, Boros secara otomatis.
+                    Sistem secara otomatis mengevaluasi nilai WCSS guna
+                    menentukan jumlah klaster (K) yang paling optimal dan
+                    objektif berdasarkan variasi sebaran data transaksi unik
+                    pengguna.
                   </p>
                 </div>
 
-                {/* Step 3 */}
+                {/* Step 3: Behavioral Clustering */}
                 <div className="group">
                   <div className="text-3xl md:text-4xl font-black text-tertiary mb-3 md:mb-4 transition-transform group-hover:-translate-y-2 duration-300">
                     03
                   </div>
-                  <h4 className="text-lg font-bold mb-2">Anomaly Detection</h4>
+                  <h4 className="text-lg font-bold mb-2">
+                    Behavioral Clustering
+                  </h4>
                   <p className="text-xs md:text-sm opacity-60 leading-relaxed font-medium">
-                    DBSCAN memindai *outliers* untuk mendeteksi pengeluaran
-                    tidak wajar yang berpotensi merusak anggaran.
+                    Algoritma K-Means memproses data berdasarkan K optimal untuk
+                    mengelompokkan kebiasaan belanja ke dalam label User Persona
+                    secara akurat.
                   </p>
                 </div>
 
-                {/* Step 4 */}
+                {/* Step 4: AI Intelligent Diagnosis */}
                 <div className="group">
                   <div className="text-3xl md:text-4xl font-black text-tertiary mb-3 md:mb-4 transition-transform group-hover:-translate-y-2 duration-300">
                     04
                   </div>
-                  <h4 className="text-lg font-bold mb-2">AI Inference</h4>
+                  <h4 className="text-lg font-bold mb-2">
+                    AI Intelligent Diagnosis
+                  </h4>
                   <p className="text-xs md:text-sm opacity-60 leading-relaxed font-medium">
-                    LLM (Gemini) menerima hasil klaster dan memberikan saran
-                    strategi finansial dalam bahasa alami.
+                    Gemini AI Agent menganalisis gabungan data numerik dan
+                    rumpun klaster untuk mendiagnosis Status Kesehatan Finansial
+                    secara otonom, sekaligus merumuskan solusi taktis berbasis
+                    aturan 50/30/20.
                   </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
         {/* --- Section: Get Started (Image Background Style) --- */}
         <div className="px-6 md:px-12 mt-15 mb-15">
           <div className="relative h-80 md:h-125 w-full rounded-xl overflow-hidden shadow-2xl">
