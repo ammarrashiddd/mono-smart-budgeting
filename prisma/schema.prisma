@@ -7,78 +7,58 @@ datasource db {
   provider = "postgresql"
 }
 
-// 1. MODEL USER
-// Menyimpan informasi akun pengguna dasar
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String // Password yang sudah di-hash
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relasi (Satu user bisa punya banyak transaksi, target, dan hasil analisis)
-  transactions      Transaction[]
-  financialTargets  FinancialTarget[]
-  clusterHistories  ClusterHistory[]
+  id               String            @id @default(uuid())
+  username         String            @unique
+  password         String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  clusterHistories ClusterHistory[]
+  financialTargets FinancialTarget[]
+  transactions     Transaction[]
 }
 
-// 2. MODEL TRANSAKSI
-// Basis data untuk CRUD Transaksi dan input utama K-Means Clustering
 model Transaction {
   id          String   @id @default(uuid())
   userId      String
-  amount      Float // Nilai positif untuk Pemasukan, negatif untuk Pengeluaran
-  category    String // Misal: "Makanan", "Gaya Hidup", "Edukasi", "Gaji"
-  description String? // Catatan opsional dari pengguna
-  date        DateTime @default(now()) // Waktu transaksi dilakukan
+  amount      Float
+  category    String
+  description String?
+  date        DateTime @default(now())
   createdAt   DateTime @default(now())
-
-  // Relasi ke User
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId]) // Indexing untuk mempercepat query berdasarkan user
-}
-
-// 3. MODEL TARGET KEUANGAN
-// Fitur tracker pemenuhan goals finansial pengguna
-model FinancialTarget {
-  id           String    @id @default(uuid())
-  userId       String
-  title        String // Nama target, misal: "Dana Darurat" atau "Beli Laptop"
-  targetAmount Float // Nominal dana yang ingin dicapai
-  currentAmount Float    @default(0) // Dana yang sudah terkumpul saat ini
-  deadline     DateTime? // Batas waktu pencapaian (opsional)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Relasi ke User
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// 4. MODEL RIWAYAT KLASTER & ANALISIS
-// Menyimpan hasil perhitungan logis Metode Elbow + K-Means + Analisis Deskriptif
-// Ini menjadi history sekaligus context payload yang dibaca oleh Gemini AI Agent
+model FinancialTarget {
+  id            String    @id @default(uuid())
+  userId        String
+  title         String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  deadline      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model ClusterHistory {
   id               String   @id @default(uuid())
   userId           String
-  optimalK         Int // Hasil keputusan angka K dari Metode Elbow (1-5)
-  assignedCluster  Int // ID Cluster hasil K-Means (0 sampai K-1)
-  personaName      String // Nama persona, misal: "Si Belanja Santai"
-  
-  // Snapshot Analisis Deskriptif saat klastering dijalankan
+  optimalK         Int
+  assignedCluster  Int
+  personaName      String
   totalPemasukan   Float
   totalPengeluaran Float
   sisaSaldo        Float
   kategoriTerbesar String
-  kondisiKesehatan String // Status: "Sehat", "Waspada", atau "Kritis"
-  
-  aiSaranText      String?  @db.Text // Menyimpan teks narasi panjang dari Gemini AI
-  calculatedAt     DateTime @default(now()) // Waktu eksekusi algoritma
-
-  // Relasi ke User
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kondisiKesehatan String
+  aiSaranText      String?
+  calculatedAt     DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
