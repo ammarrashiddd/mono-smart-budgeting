@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
+import { authenticate, registerUser } from "@/app/api/auth/actions";
 
 interface AuthFormData {
   username: string;
@@ -21,11 +22,13 @@ export default function AuthForm({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm<AuthFormData>({
     defaultValues: {
@@ -39,11 +42,41 @@ export default function AuthForm({
   const password = watch("password");
   const router = useRouter();
 
-  const onSubmit = () => {
-    if (mode === "signin") {
-      router.push("/dashboard");
-    } else {
-      setMode("signin");
+  const onSubmit = async (data: AuthFormData) => {
+    setIsLoading(true);
+
+    // Bungkus data ke objek FormData standar agar bisa dibaca Server Action
+    const formData = new FormData();
+    formData.append("username", data.username);
+    formData.append("password", data.password);
+
+    try {
+      if (mode === "signup") {
+        // Jalankan logika pendaftaran
+        const result = await registerUser(formData);
+        if (!result.success) {
+          alert(result.message);
+        } else {
+          alert(result.message);
+          reset();
+          setMode("signin");
+        }
+      } else {
+        // Jalankan logika login NextAuth
+        const result = await authenticate(undefined, formData);
+        if (!result.success) {
+          alert(result.message);
+        } else {
+          alert("Selamat datang kembali!");
+          router.push("/dashboard");
+          router.refresh(); // Memaksa middleware memperbarui status sesi di browser
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi masalah koneksi sistem.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
