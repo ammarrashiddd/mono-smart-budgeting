@@ -39,20 +39,12 @@ export default function AuthForm({
   const password = watch("password");
   const router = useRouter();
 
-  const onSubmit = (data: AuthFormData) => {
-    console.log("Form Data:", data);
-    setTimeout(() => {
-      alert(
-        mode === "signin"
-          ? "Successfully signed in!"
-          : "Account created successfully!",
-      );
-      if (mode === "signup") {
-        setMode("signin");
-      } else if (mode === "signin") {
-        router.push("/dashboard");
-      }
-    }, 1000);
+  const onSubmit = () => {
+    if (mode === "signin") {
+      router.push("/dashboard");
+    } else {
+      setMode("signin");
+    }
   };
 
   return (
@@ -82,7 +74,7 @@ export default function AuthForm({
             {...register("username", { required: "Username is required" })}
             type="text"
             placeholder="Enter your username..."
-            className="w-full px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+            className="w-full px-4 py-3 md:py-3.5 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
           />
           {errors.username && (
             <p className="text-red-500 text-[10px] md:text-sm mt-1 font-bold">
@@ -98,10 +90,19 @@ export default function AuthForm({
           </label>
           <div className="relative">
             <input
-              {...register("password", { required: "Password is required" })}
+              {...register("password", {
+                required: "Password is required",
+                minLength:
+                  mode === "signup"
+                    ? {
+                        value: 8,
+                        message: "Password must be at least 8 characters long",
+                      }
+                    : undefined,
+              })}
               type={showPassword ? "text" : "password"}
               placeholder="••••••••••••"
-              className="w-full px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+              className="w-full px-4 py-3 md:py-3.5 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
             />
             <button
               type="button"
@@ -137,7 +138,7 @@ export default function AuthForm({
                 })}
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                className="w-full px-4 py-3 md:py-3.5 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
               />
               <button
                 type="button"
@@ -192,7 +193,7 @@ export default function AuthForm({
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base font-black py-3.5 md:py-4 rounded-xl md:rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-2"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base font-black py-3.5 md:py-4 rounded-md shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-2"
         >
           {mode === "signin" ? "Log in" : "Create Account"}
         </button>
