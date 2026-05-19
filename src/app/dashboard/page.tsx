@@ -21,34 +21,33 @@ export default function DashboardPage() {
 
       {/* header */}
       <header className="px-4 md:px-12 mt-6 md:mt-10">
-        <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tighter text-secondary leading-tight capitalize">
-          {/* 5. Ganti teks Ammar statis dengan variabel nama yang dinamis */}
+        <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tighter text-secondary leading-tight capitalize">
           Hello {username}, <br className="block sm:hidden" /> Welcome Back!
         </h3>
       </header>
 
       {/* --- Section 1: Stats (Responsive Grid) --- */}
-      <div className="px-4 md:px-12 mt-6 md:mt-12">
+      <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Stats />
       </div>
 
       {/* --- Section 2: Goals (Responsive List) --- */}
-      <div className="px-4 md:px-12 mt-10 md:mt-16">
+      <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Goals />
       </div>
 
       {/* --- Section 3: Transaction History */}
-      <div className="px-4 md:px-12 mt-10 md:mt-16">
+      <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Transactions />
       </div>
 
       {/* --- Section 4: Machine Learning Visualization */}
-      <div className="px-4 md:px-12 mt-10 md:mt-16">
+      <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Ml />
       </div>
 
       {/* --- Section 5: AI Strategy Analysis */}
-      <div className="px-4 md:px-12 mt-10 md:mt-16">
+      <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Ai />
       </div>
     </main>

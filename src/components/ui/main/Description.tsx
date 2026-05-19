@@ -37,10 +37,7 @@ export default function Description() {
           <div className="group p-5 md:p-6 rounded-lg bg-secondary/5 text-secondary shadow-md hover:shadow-2xl transition-all duration-300">
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
               <div className="flex-1">
-                <h4 className="text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 opacity-60">
-                  Analysis 01
-                </h4>
-                <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">
+                <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-5">
                   Optimal Cluster Validation
                 </h3>
                 <p className="text-xs md:text-sm leading-relaxed opacity-80">
@@ -62,15 +59,13 @@ export default function Description() {
           <div className="group p-5 md:p-6 rounded-lg bg-tertiary text-primary shadow-md hover:shadow-2xl transition-all duration-300">
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
               <div className="flex-1">
-                <h4 className="text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 opacity-60">
-                  Analysis 02
-                </h4>
-                <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">
+                <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-5">
                   Hybrid Financial Pattern Analysis
                 </h3>
                 <p className="text-xs md:text-sm leading-relaxed opacity-80">
                   Panel dashboard yang mengombinasikan kalkulasi statistik riil
-                  dengan label User Persona hasil klastering K-Means.
+                  dengan label karakteristik tata kelola keuangan pengguna hasil
+                  klastering K-Means.
                 </p>
               </div>
               <div className="w-full sm:w-32 md:w-40 h-24 md:h-28 overflow-hidden rounded-xl bg-blue-900/50 shrink-0">
@@ -87,10 +82,7 @@ export default function Description() {
           <div className="group p-5 md:p-6 rounded-lg bg-secondary/5 text-secondary shadow-md hover:shadow-2xl transition-all duration-300">
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
               <div className="flex-1">
-                <h4 className="text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 opacity-60">
-                  Analysis 03
-                </h4>
-                <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">
+                <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-5">
                   Financial Standard Alignment
                 </h3>
                 <p className="text-xs md:text-sm leading-relaxed opacity-80">

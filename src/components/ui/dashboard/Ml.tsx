@@ -3,27 +3,21 @@ export default function MlVisualitation() {
     <main>
       <div className="bg-white rounded-xl p-6 md:p-8 border border-secondary/5 shadow-sm">
         {/* Header Section - Ramping dengan Sentuhan Warna */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 pb-4 border-b border-secondary/5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 pb-4 border-b border-secondary/50">
           <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-tertiary" />
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary/40">
-                Machine Learning Engine
-              </h4>
-            </div>
-            <h3 className="text-lg font-bold text-secondary tracking-tight">
+            <h3 className="text-lg font-black text-secondary ">
               K-Means Clustering
             </h3>
           </div>
           <div className="text-[10px] font-bold text-tertiary bg-tertiary/5 px-2.5 py-1 rounded border border-tertiary/10">
-            Metode Elbow Otomatis
+            Metode Elbow
           </div>
         </div>
 
         {/* Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Box Visualisasi Scatter Plot (Berwarna Terarah) */}
-          <div className="lg:col-span-2 h-60 bg-secondary/1 rounded-xl border border-secondary/5 flex flex-col items-center justify-center relative overflow-hidden p-4">
+          <div className="lg:col-span-2 h-60 bg-secondary/1 rounded-xl border border-secondary/50 flex flex-col items-center justify-center relative overflow-hidden p-4">
             {/* Titik Pusat Centroid (Warna Solid Penanda Klaster) */}
             <div className="absolute top-1/4 left-1/3 w-2.5 h-2.5 bg-tertiary rounded-full shadow-md z-10" />
             <div className="absolute bottom-1/3 right-1/4 w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-md z-10" />
