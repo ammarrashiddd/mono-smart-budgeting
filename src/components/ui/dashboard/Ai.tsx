@@ -1,3 +1,5 @@
+import { InvoiceIcon } from "@phosphor-icons/react";
+
 export default function Ai() {
   return (
     <main>
@@ -25,22 +27,39 @@ export default function Ai() {
 
           {/* Kolom Kanan: Status Kesehatan Finansial Murni (Muted Look) */}
           <div className="w-full lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-primary/5 pt-6 lg:pt-0 lg:pl-6">
-            <p className="text-[9px] font-bold text-primary/40 uppercase tracking-wider mb-2">
-              Financial Health
-            </p>
+            <div>
+              <p className="text-[9px] font-bold text-primary/40 uppercase tracking-wider mb-2">
+                Financial Health
+              </p>
 
-            {/* Status Indikator Minimalis */}
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-lg font-black text-primary/50 uppercase tracking-wide">
-                Waspada
+              {/* Status Indikator Minimalis */}
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-lg font-black text-primary/50 uppercase tracking-wide">
+                  Waspada
+                </p>
+              </div>
+
+              {/* Deskripsi Status */}
+              <p className="text-[11px] text-primary/50 leading-relaxed font-medium">
+                Rasio akumulasi pengeluaran bulanan berjalan mendesak kapasitas
+                sisa saldo efektif Anda.
               </p>
             </div>
 
-            {/* Deskripsi Status */}
-            <p className="text-[11px] text-primary/50 leading-relaxed font-medium">
-              Rasio akumulasi pengeluaran bulanan berjalan mendesak kapasitas
-              sisa saldo efektif Anda.
-            </p>
+            <div className="border border-primary/50 my-5 "></div>
+
+            {/* kategori terbesar */}
+            <div className="mt-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] font-bold text-primary/40 uppercase tracking-wider">
+                  Kategori Terbesar
+                </span>
+              </div>
+
+              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-primary/50 tracking-tighter leading-none">
+                Belanja
+              </p>
+            </div>
           </div>
         </div>
       </div>
