@@ -2,7 +2,11 @@ import { usePathname, useRouter } from "next/navigation";
 import NavDashboard from "./NavDashboard";
 import NavMain from "./NavMain";
 
-export default function Navbar() {
+type NavbarProps = {
+  name?: string | null;
+};
+
+export default function Navbar({ name }: NavbarProps) {
   const Router = useRouter();
   const pathname = usePathname();
 
@@ -20,7 +24,7 @@ export default function Navbar() {
       <div className="flex items-center gap-1.5 md:gap-4">
         {isDashboard ? (
           <>
-            <NavDashboard />
+            <NavDashboard name={name} />
           </>
         ) : (
           <>

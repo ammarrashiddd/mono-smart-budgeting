@@ -4,7 +4,7 @@ export default function NavMain() {
   const Router = useRouter();
 
   return (
-    <main>
+    <main className="flex flex-row gap-3">
       <button
         className="text-primary font-black px-3 md:px-4 py-2 hover:bg-primary/10 rounded-full transition-all text-xs md:text-base whitespace-nowrap"
         onClick={() => {

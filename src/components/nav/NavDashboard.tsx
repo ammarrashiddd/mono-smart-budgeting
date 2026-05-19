@@ -4,7 +4,11 @@ import { SignOut, User } from "@phosphor-icons/react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 
-export default function NavDashboard() {
+type NavDashboardProps = {
+  name?: string | null;
+};
+
+export default function NavDashboard({ name }: NavDashboardProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -21,7 +25,7 @@ export default function NavDashboard() {
           className="flex items-center gap-2 bg-primary text-secondary px-4 md:px-5 py-2 rounded-md text-[12px] md:text-sm font-black hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/10"
         >
           {/* Nanti teks Ammar ini bisa kamu buat dinamis menggunakan useSession() */}
-          <span className="max-w-17.5 md:max-w-none truncate">Ammar</span>
+          <span className="max-w-17.5 md:max-w-none truncate">{name}</span>
           <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
             <User size={12} weight="bold" />
           </div>
