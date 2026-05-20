@@ -1,7 +1,13 @@
 "use client";
 
 import TransactionsForm from "@/components/form/TransactionsForm";
-import { PencilSimple, Plus, Trash, X } from "@phosphor-icons/react";
+import {
+  PencilSimple,
+  Plus,
+  Trash,
+  CaretLeft,
+  CaretRight,
+} from "@phosphor-icons/react"; // Menambahkan ikon navigasi halaman
 import { useState, useEffect } from "react";
 
 interface TransactionItem {
@@ -22,7 +28,11 @@ export default function TransactionHistory({
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // State Modal & Form Input (State category dihapus)
+  // State untuk mengontrol halaman pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // Batasan jumlah data per halaman
+
+  // State Modal & Form Input
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<TransactionItem | null>(null);
   const [inputName, setInputName] = useState("");
@@ -50,6 +60,25 @@ export default function TransactionHistory({
     fetchTransactions();
   }, []);
 
+  // --- LOGIKA HITUNGAN PAGINATION ---
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+
+  // Mengambil potongan data transaksi sesuai halaman aktif
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTransactions = transactions.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
+
+  // Reset ke halaman 1 jika setelah operasi CRUD jumlah halaman menyusut
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [transactions, totalPages, currentPage]);
+  // ----------------------------------
+
   const openAddModal = () => {
     setEditingTx(null);
     setInputName("");
@@ -73,60 +102,51 @@ export default function TransactionHistory({
     setIsModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const amountValue = parseFloat(inputAmount);
-    const normalizedAmount =
-      inputType === "expense" ? -Math.abs(amountValue) : Math.abs(amountValue);
-
-    const payload = {
-      description: inputName,
-      amount: normalizedAmount,
-      date: inputDate,
-    };
-
+  const handleSaveBulk = async (items: any[]) => {
     try {
       if (editingTx) {
-        if (!editingTx.id) {
-          console.error(
-            "Tidak bisa edit transaksi: id tidak tersedia",
-            editingTx,
-          );
-          return;
-        }
+        // Jika edit data tunggal biasa
+        const item = items[0];
+        const normalizedAmount =
+          item.type === "expense"
+            ? -Math.abs(parseFloat(item.amount))
+            : Math.abs(parseFloat(item.amount));
 
-        const res = await fetch(`/api/transactions/${editingTx.id}`, {
+        await fetch(`/api/transactions/${editingTx.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            description: item.description,
+            amount: normalizedAmount,
+            date: item.date,
+          }),
         });
-        if (res.ok) {
-          fetchTransactions();
-          onTransactionChange?.();
-        } else {
-          console.error("PUT Transaction failed", res.status, await res.text());
-        }
       } else {
-        const res = await fetch("/api/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (res.ok) {
-          fetchTransactions();
-          onTransactionChange?.();
-        } else {
-          console.error(
-            "POST Transaction failed",
-            res.status,
-            await res.text(),
-          );
-        }
+        // Jika simpan data banyak sekaligus, tembak API dengan Promise.all agar efisien
+        await Promise.all(
+          items.map((item) => {
+            const normalizedAmount =
+              item.type === "expense"
+                ? -Math.abs(parseFloat(item.amount))
+                : Math.abs(parseFloat(item.amount));
+            return fetch("/api/transactions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                description: item.description,
+                amount: normalizedAmount,
+                date: item.date,
+              }),
+            });
+          }),
+        );
       }
+
+      fetchTransactions(); // Segarkan riwayat tabel
+      onTransactionChange?.(); // Picu ulang grafik & statistik
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Gagal menyimpan transaksi:", err);
+      console.error("Gagal menyimpan bulk transaksi:", err);
     }
   };
 
@@ -174,7 +194,7 @@ export default function TransactionHistory({
             {isManaging && (
               <button
                 onClick={openAddModal}
-                className="flex items-center gap-1 bg-tertiary text-primary px-3 py-1.5 rounded-md text-[10px] font-black uppercase hover:opacity-90 transition-all cursor-pointer animate-in fade-in slide-in-from-left-2 duration-200"
+                className="flex items-center gap-1 bg-tertiary text-primary px-3 py-1.5 rounded-md text-[10px] font-black uppercase hover:opacity-90 transition-all cursor-pointer"
               >
                 Tambah
               </button>
@@ -194,10 +214,11 @@ export default function TransactionHistory({
               Belum ada riwayat transaksi.
             </p>
           ) : (
-            transactions.map((item) => (
+            // Merender data dari potongan halaman aktif (currentTransactions) bukan transactions utuh
+            currentTransactions.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between py-2 rounded-xl hover:bg-secondary/2 transition-all"
+                className="flex items-center justify-between py-2 rounded-xl hover:bg-secondary/2 transition-all border-b border-secondary/5 last:border-0"
               >
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="max-w-30 sm:max-w-none">
@@ -248,6 +269,34 @@ export default function TransactionHistory({
             ))
           )}
         </div>
+
+        {/* --- TOMBOL NAVIGASI PAGINATION --- */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-8 pt-4 border-t border-secondary/5 text-xs font-bold text-secondary/60">
+            <p>
+              Halaman <span className="text-secondary">{currentPage}</span> dari{" "}
+              <span className="text-secondary">{totalPages}</span>
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-secondary/10 rounded-lg hover:bg-secondary/5 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all"
+              >
+                <CaretLeft size={14} weight="bold" />
+              </button>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev - 1 + 2, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="p-2 border border-secondary/10 rounded-lg hover:bg-secondary/5 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all"
+              >
+                <CaretRight size={14} weight="bold" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* FORM MODAL INPUT TRANSAKSI */}
@@ -256,15 +305,7 @@ export default function TransactionHistory({
           isModalOpen={isModalOpen}
           setIsModalOpen={setIsModalOpen}
           editingTx={editingTx}
-          handleSave={handleSave}
-          inputName={inputName}
-          setInputName={setInputName}
-          inputAmount={inputAmount}
-          setInputAmount={setInputAmount}
-          inputType={inputType}
-          setInputType={setInputType}
-          inputDate={inputDate}
-          setInputDate={setInputDate}
+          handleSaveBulk={handleSaveBulk}
         />
       )}
     </main>
