@@ -20,10 +20,12 @@ interface DataPoint {
   cluster: number;
 }
 
+// Interface diperbarui agar fleksibel menerima tipe WCSS number/string dan data elbow
 interface KmeansResult {
   k: number;
-  wcss: string;
+  wcss: number | string;
   points: DataPoint[];
+  elbow?: Array<{ k: number; wcss: number }>;
 }
 
 export default function Ml() {
@@ -31,8 +33,9 @@ export default function Ml() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Palet warna klaster finansial (Tertiary, Emerald, Amber)
-  const COLORS = ["#1A365D", "#10B981", "#F59E0B"];
+  // Palet warna klaster finansial diperbanyak hingga 5 warna kontras
+  // Urutan: Klaster 1 (Navy/Rutin), 2 (Emerald/Hemat), 3 (Amber/Wajar), 4 (Orange/Cukup Boros), 5 (Rose/Sangat Boros)
+  const COLORS = ["#1A365D", "#10B981", "#F59E0B", "#F97316", "#F43F5E"];
 
   useEffect(() => {
     const runKmeans = async () => {
@@ -67,6 +70,10 @@ export default function Ml() {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const info = payload[0].payload;
+
+      // Ambil warna dinamis berdasarkan ID klaster agar text indikator di tooltip sewarna dengan dot grafik
+      const currentClusterColor = COLORS[info.cluster % COLORS.length];
+
       return (
         <div className="bg-white p-3 border border-secondary/10 shadow-xl rounded-lg text-xs font-medium space-y-1">
           <p className="font-black text-secondary">{info.name}</p>
@@ -82,7 +89,7 @@ export default function Ml() {
           </p>
           <p
             className="text-[9px] font-black uppercase tracking-wider mt-1"
-            style={{ color: COLORS[info.cluster] }}
+            style={{ color: currentClusterColor }}
           >
             Klaster #{info.cluster + 1}
           </p>
@@ -129,7 +136,7 @@ export default function Ml() {
         {/* Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Box Visualisasi Scatter Plot (Data Riil Recharts) */}
-          <div className="lg:col-span-2 h-64 bg-secondary/1 rounded-xl border border-secondary/15 p-4 animate-in fade-in duration-300">
+          <div className="lg:col-span-2 h-64 bg-secondary/1 rounded-lg border border-secondary/15 p-4 animate-in fade-in duration-300">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart
                 margin={{ top: 10, right: 10, bottom: 0, left: -10 }}
@@ -156,7 +163,7 @@ export default function Ml() {
                   {data?.points.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[entry.cluster % COLORS.length]}
+                      fill={COLORS[entry.cluster % COLORS.length]} // Penggunaan modulo (%) memastikan warna aman dari error out-of-bounds
                       radius={4}
                     />
                   ))}
@@ -176,7 +183,7 @@ export default function Ml() {
                 <p className="text-xl font-bold text-secondary tracking-tight">
                   K = {data?.k}{" "}
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-1">
-                    Optimal
+                    Optimal (Elbow)
                   </span>
                 </p>
               </div>
@@ -187,9 +194,11 @@ export default function Ml() {
                   Cluster Inertia (WCSS)
                 </p>
                 <p className="text-xl font-bold text-secondary/80 tracking-tight">
-                  {data?.wcss}{" "}
+                  {data?.wcss
+                    ? new Intl.NumberFormat("id-ID").format(Number(data.wcss))
+                    : 0}{" "}
                   <span className="text-[10px] font-bold text-tertiary bg-tertiary/5 px-1.5 py-0.5 rounded ml-1">
-                    Convergence
+                    Real Value
                   </span>
                 </p>
               </div>
@@ -200,8 +209,9 @@ export default function Ml() {
               <p className="text-[11px] text-secondary/50 leading-relaxed">
                 Pemisahan data berbasis jarak *Euclidean* murni ini memetakan
                 pola sebaran pengeluaran harian Anda ke dalam {data?.k} zona
-                klaster warna, yang selanjutnya dikirim ke modul AI sebagai
-                landasan pembuatan strategi finansial terukur.
+                klaster warna (dinamis berdasarkan kalkulasi metode *Elbow*),
+                yang selanjutnya dikirim ke modul AI sebagai landasan pembuatan
+                strategi finansial terukur.
               </p>
             </div>
           </div>

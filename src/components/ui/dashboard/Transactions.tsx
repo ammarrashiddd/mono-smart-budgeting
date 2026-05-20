@@ -218,7 +218,7 @@ export default function TransactionHistory({
             currentTransactions.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between py-2 rounded-xl hover:bg-secondary/2 transition-all border-b border-secondary/5 last:border-0"
+                className="flex items-center justify-between py-2 rounded-xl hover:bg-secondary/2 transition-all"
               >
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="max-w-30 sm:max-w-none">

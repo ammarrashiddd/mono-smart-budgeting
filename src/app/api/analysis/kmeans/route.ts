@@ -3,6 +3,34 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { kmeans } from "ml-kmeans";
 
+// --- FUNGSI UTALITAS: MENGHITUNG JARAK EUCLIDEAN ---
+function getEuclideanDistance(point: number[], centroid: number[]): number {
+  return Math.sqrt(
+    Math.pow(point[0] - centroid[0], 2) + Math.pow(point[1] - centroid[1], 2),
+  );
+}
+
+// --- FUNGSI UTALITAS: MENGHITUNG WCSS NYATA (BASED ON COORDINATES) ---
+function calculateWCSS(
+  dataPoints: number[][],
+  clusters: number[],
+  centroids: number[][], // Diubah eksplisit menjadi number[][] biar aman
+): number {
+  let totalWcss = 0;
+  for (let i = 0; i < dataPoints.length; i++) {
+    const point = dataPoints[i];
+    const clusterId = clusters[i];
+
+    // PERBAIKAN LINE 25: Tegaskan type-nya sebagai array 1D [X, Y] menggunakan 'as number[]'
+    const centroid = centroids[clusterId] as unknown as number[];
+
+    if (centroid) {
+      totalWcss += Math.pow(getEuclideanDistance(point, centroid), 2);
+    }
+  }
+  return totalWcss;
+}
+
 export async function GET() {
   try {
     const session = await auth();
@@ -16,82 +44,148 @@ export async function GET() {
       orderBy: { date: "asc" },
     });
 
-    if (transactions.length < 3) {
+    if (transactions.length < 5) {
       return NextResponse.json(
         {
           message:
-            "Data transaksi minimal harus berjumlah 3 untuk klasterisasi.",
+            "Data transaksi pengeluaran minimal harus berjumlah 5 untuk mencari K optimal via Elbow.",
         },
         { status: 400 },
       );
     }
 
-    // 2. Ekstraksi fitur 2D: X = Hari (1-31), Y = Absolut Nominal Transaksi
-    const dataPoints = transactions.map((tx) => {
+    // 2. Ekstraksi Fitur Asli
+    const rawPoints = transactions.map((tx) => {
       const day = new Date(tx.date).getDate();
       const amount = Math.abs(tx.amount);
       return [day, amount];
     });
 
-    // 3. Eksekusi K-Means dengan K=3
-    const K = 3;
-    const ans = kmeans(dataPoints, K, { initialization: "kmeans++" });
+    // ==========================================
+    // MIN-MAX NORMALIZATION (0 - 1)
+    // ==========================================
+    const rawAmounts = rawPoints.map((p) => p[1]);
+    const maxAmount = Math.max(...rawAmounts, 1);
+    const minAmount = Math.min(...rawAmounts, 0);
 
-    // --- PROSES PENGURUTAN KLASTER BERDASARKAN NOMINAL TERKECIL (SUMBU Y) ---
-
-    // Hitung rata-rata nilai Y untuk masing-masing klaster asli
-    const clusterAverages = Array.from({ length: K }, (_, clusterIdx) => {
-      const clusterPoints = dataPoints.filter(
-        (_, pointIdx) => ans.clusters[pointIdx] === clusterIdx,
-      );
-      const avgY =
-        clusterPoints.length > 0
-          ? clusterPoints.reduce((sum, pt) => sum + pt[1], 0) /
-            clusterPoints.length
-          : 0;
-      return { originalIdx: clusterIdx, avgY };
+    const normalizedPoints = rawPoints.map(([day, amount]) => {
+      const normX = (day - 1) / (31 - 1);
+      const normY = (amount - minAmount) / (maxAmount - minAmount || 1);
+      return [normX, normY];
     });
 
-    // Urutkan klaster berdasarkan rata-rata nominal (avgY) secara ascending (terkecil ke terbesar)
+    // --- PROSES 1: JALANKAN PERULANGAN ELBOW (K = 1 sampai K = 6) ---
+    const elbowData = [];
+    const kmeansResults: {
+      [key: number]: {
+        clusters: number[];
+        centroids: number[][];
+        wcss: number;
+      };
+    } = {};
+    const maxK = 6;
+
+    for (let kVal = 1; kVal <= maxK; kVal++) {
+      const runKmeans = kmeans(normalizedPoints, kVal, {
+        initialization: "kmeans++",
+      });
+
+      // Paksa type centroids hasil library menjadi number[][] agar match dengan fungsi WCSS
+      const currentCentroids = runKmeans.centroids as unknown as number[][];
+
+      const wcssValue = calculateWCSS(
+        normalizedPoints,
+        runKmeans.clusters,
+        currentCentroids,
+      );
+
+      const roundedWcss = parseFloat(wcssValue.toFixed(4));
+      elbowData.push({ k: kVal, wcss: roundedWcss });
+
+      kmeansResults[kVal] = {
+        clusters: runKmeans.clusters,
+        centroids: currentCentroids,
+        wcss: roundedWcss,
+      };
+    }
+
+    // ==========================================
+    // LOGIKA DETEKSI TEKUKAN SIKU & THRESHOLD AMBING
+    // ==========================================
+    let optimalK = 3;
+    let maxCurvature = -Infinity;
+
+    for (let i = 1; i < elbowData.length - 1; i++) {
+      const wcssPrev = elbowData[i - 1].wcss;
+      const wcssCurr = elbowData[i].wcss;
+      const wcssNext = elbowData[i + 1].wcss;
+
+      const dropSebelum = wcssPrev - wcssCurr;
+      const dropSesudah = wcssCurr - wcssNext;
+      const curvature = dropSebelum - dropSesudah;
+
+      if (curvature > maxCurvature) {
+        maxCurvature = curvature;
+        optimalK = elbowData[i].k;
+      }
+    }
+
+    if (optimalK === 2 && elbowData[2]) {
+      const dropK2ToK3 = elbowData[1].wcss - elbowData[2].wcss;
+      const threshold = elbowData[0].wcss * 0.05;
+
+      if (dropK2ToK3 > threshold) {
+        optimalK = 3;
+      }
+    }
+
+    const finalKmeans = kmeansResults[optimalK];
+    const finalClusters = finalKmeans.clusters;
+
+    // --- PROSES 3: MENGURUTKAN KLASTER BERDASARKAN NOMINAL UANG ---
+    const clusterAverages = Array.from(
+      { length: optimalK },
+      (_, clusterIdx) => {
+        const clusterPoints = rawPoints.filter(
+          (_, pointIdx) => finalClusters[pointIdx] === clusterIdx,
+        );
+        const avgY =
+          clusterPoints.length > 0
+            ? clusterPoints.reduce((sum, pt) => sum + pt[1], 0) /
+              clusterPoints.length
+            : 0;
+        return { originalIdx: clusterIdx, avgY };
+      },
+    );
+
     clusterAverages.sort((a, b) => a.avgY - b.avgY);
 
-    // Buat mapping id klaster lama ke id klaster baru (0 = terkecil, 1 = menengah, 2 = terbesar)
-    // Contoh: jika urutannya adalah klaster asli 2, lalu 0, lalu 1. Maka mapping-nya: { "2": 0, "0": 1, "1": 2 }
     const clusterMapping: { [key: number]: number } = {};
     clusterAverages.forEach((item, newIdx) => {
       clusterMapping[item.originalIdx] = newIdx;
     });
 
-    // Urutkan juga data koordinat centroid agar sinkron dengan urutan warna baru
-    const sortedCentroids = clusterAverages.map(
-      (item) => ans.centroids[item.originalIdx],
-    );
-
-    // --- SELESAI PROSES PENGURUTAN ---
-
-    // 4. Strukturkan kembali data untuk grafik Recharts Scatter Plot dengan klaster yang sudah berurutan
+    // --- PROSES 4: STRUKTURKAN ULANG DATA UNTUK RESPONSE FRONTEND ---
     const clusteredData = transactions.map((tx, index) => {
-      const originalClusterId = ans.clusters[index];
-      const sortedClusterId = clusterMapping[originalClusterId]; // Dapatkan indeks baru yang sudah terurut
+      const originalClusterId = finalClusters[index];
+      const sortedClusterId = clusterMapping[originalClusterId];
 
       return {
         id: tx.id,
         name: tx.description,
-        x: new Date(tx.date).getDate(), // Sumbu X (Tanggal)
-        y: Math.abs(tx.amount), // Sumbu Y (Nominal)
-        cluster: sortedClusterId, // Sekarang bernilai 0 (Kecil), 1 (Sedang), atau 2 (Besar)
+        x: new Date(tx.date).getDate(),
+        y: Math.abs(tx.amount),
+        cluster: sortedClusterId,
       };
     });
 
-    // Hitung rata-rata WCSS (Inertia) tiruan presisi berdasarkan konvergensi iterasi
-    const iterations = ans.iterations;
-    const mockWcss = (1 / (iterations + 2)).toFixed(4);
+    const cleanElbowData = elbowData.filter((item) => item.k <= 5);
 
     return NextResponse.json({
-      centroids: sortedCentroids, // Centroid sudah terurut
-      wcss: mockWcss,
-      k: K,
-      points: clusteredData, // Poin data sudah memegang id klaster terurut
+      wcss: finalKmeans.wcss,
+      k: optimalK,
+      points: clusteredData,
+      elbow: cleanElbowData,
     });
   } catch (error) {
     console.error("K-Means Error:", error);

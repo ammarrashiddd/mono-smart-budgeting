@@ -31,7 +31,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="bg-primary min-h-screen w-full pb-10 text-secondary overflow-x-hidden no-scrollbar">
+    <main className="bg-primary min-h-screen w-full pb-10 text-secondary">
       {/* navbar */}
       <nav className="h-16 md:h-20 px-4 md:px-12 bg-tertiary flex items-center border-b border-tertiary/10 shadow-sm sticky top-0 z-50">
         <Navbar name={username} />
@@ -66,7 +66,7 @@ export default function DashboardPage() {
         <button
           onClick={handleTriggerAnalysis}
           disabled={isAnalyzing}
-          className={`flex items-center gap-2 px-8 py-4 rounded-xl text-sm md:text-base font-black uppercase tracking-wider transition-all shadow-xl cursor-pointer ${
+          className={`flex items-center gap-2 px-8 py-4 rounded-lg text-sm md:text-base font-black uppercase tracking-wider transition-all shadow-xl cursor-pointer ${
             isAnalyzing
               ? "bg-secondary/10 text-secondary/40 cursor-not-allowed animate-pulse"
               : "bg-tertiary text-primary hover:opacity-95 hover:scale-[1.02] shadow-tertiary/20"
