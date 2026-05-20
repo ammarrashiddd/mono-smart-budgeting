@@ -12,10 +12,7 @@ export const prisma =
     adapter: new PrismaPg({
       connectionString: process.env.DATABASE_URL ?? "",
     }),
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
 // Menyimpan instansi ke globalThis jika tidak berada di lingkungan produksi (production)

@@ -17,24 +17,18 @@ export async function GET() {
       where: { userId },
     });
 
-    // 3. Hitung Total Pemasukan dan Pengeluaran secara manual atau via agregasi
-    // Di sini kita asumsikan kamu membedakan pemasukan/pengeluaran berdasarkan kategori atau nominal (misal: pengeluaran bernilai negatif, atau ada kolom tipe)
-    // Jika di skema kamu 'amount' selalu positif dan pemisahan lewat string kategori, kita filter berdasarkan kategori.
-    // Contoh di bawah mengasumsikan pengeluaran bernilai positif namun dikelompokkan (atau kamu bisa sesuaikan dengan logika bisnismu):
-
+    // 3. Hitung Total Pemasukan dan Pengeluaran.
+    // Saat ini, tipe transaksi disimpan dalam tanda amount:
+    // - value >= 0 berarti pemasukan
+    // - value < 0 berarti pengeluaran
     let totalPemasukan = 0;
     let totalPengeluaran = 0;
 
     transactions.forEach((tx) => {
-      // Sederhananya: Kamu bisa asumsikan kategori tertentu sebagai pemasukan, sisanya pengeluaran.
-      // Atau jika di form input nanti kamu membedakan nilainya, sesuaikan di sini.
-      if (
-        tx.category.toLowerCase() === "pemasukan" ||
-        tx.category.toLowerCase() === "income"
-      ) {
+      if (tx.amount >= 0) {
         totalPemasukan += tx.amount;
       } else {
-        totalPengeluaran += tx.amount;
+        totalPengeluaran += Math.abs(tx.amount);
       }
     });
 

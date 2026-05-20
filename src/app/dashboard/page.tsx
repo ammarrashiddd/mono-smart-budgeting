@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Navbar from "@/components/nav/Navbar";
 import Ai from "@/components/ui/dashboard/Ai";
 import Goals from "@/components/ui/dashboard/Goals";
@@ -11,6 +12,7 @@ import { useSession } from "next-auth/react";
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const username = session?.user?.name;
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
 
   return (
     <main className="bg-primary min-h-screen w-full pb-10  text-secondary overflow-x-hidden no-scrollbar">
@@ -28,7 +30,7 @@ export default function DashboardPage() {
 
       {/* --- Section 1: Stats (Responsive Grid) --- */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
-        <Stats />
+        <Stats refreshKey={statsRefreshKey} />
       </div>
 
       {/* --- Section 2: Goals (Responsive List) --- */}
@@ -38,7 +40,9 @@ export default function DashboardPage() {
 
       {/* --- Section 3: Transaction History */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
-        <Transactions />
+        <Transactions
+          onTransactionChange={() => setStatsRefreshKey((prev) => prev + 1)}
+        />
       </div>
 
       {/* --- Section 4: Machine Learning Visualization */}

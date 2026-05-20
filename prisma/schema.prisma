@@ -22,7 +22,6 @@ model Transaction {
   id          String   @id @default(uuid())
   userId      String
   amount      Float
-  category    String
   description String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())

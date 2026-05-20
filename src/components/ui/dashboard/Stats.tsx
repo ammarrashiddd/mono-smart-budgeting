@@ -7,12 +7,17 @@ interface StatsData {
   sisaSaldo: number;
 }
 
-export function Stats() {
+interface StatsProps {
+  refreshKey?: number;
+}
+
+export function Stats({ refreshKey }: StatsProps) {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
+      setLoading(true);
       try {
         const response = await fetch("/api/stats", {
           credentials: "include",
@@ -31,7 +36,7 @@ export function Stats() {
     };
 
     fetchStats();
-  }, []);
+  }, [refreshKey]);
 
   // Format angka ke Rupiah (Rp)
   const formatRupiah = (num: number) => {
