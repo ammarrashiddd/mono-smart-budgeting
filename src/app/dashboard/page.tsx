@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/nav/Navbar";
 import Ai from "@/components/ui/dashboard/Ai";
 import Goals from "@/components/ui/dashboard/Goals";
@@ -8,7 +8,7 @@ import Ml from "@/components/ui/dashboard/Ml";
 import { Stats } from "@/components/ui/dashboard/Stats";
 import Transactions from "@/components/ui/dashboard/Transactions";
 import { useSession } from "next-auth/react";
-import { ChartBar, Sparkle } from "@phosphor-icons/react"; // Ditambahkan untuk ikon tombol
+import { ChartBar, Sparkle } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -19,7 +19,31 @@ export default function DashboardPage() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Fungsi untuk mensimulasikan proses running algoritma ML & AI
+  // ==========================================
+  // PERBAIKAN: CEK CACHE K-MEANS SAAT COMPONENT MOUNT
+  // ==========================================
+  useEffect(() => {
+    const checkKmeansCache = async () => {
+      if (!session?.user) return; // Tunggu sampai sesi user siap
+
+      try {
+        const res = await fetch("/api/analysis/kmeans");
+        if (res.ok) {
+          const data = await res.json();
+          // Jika data sukses dimuat dan berasal dari cache database, langsung tampilkan seksi ML & AI
+          if (data && data.points && data.points.length > 0) {
+            setShowAnalysis(true);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memeriksa cache K-Means:", err);
+      }
+    };
+
+    checkKmeansCache();
+  }, [session]);
+
+  // Fungsi untuk mensimulasikan proses running algoritma ML & AI secara manual
   const handleTriggerAnalysis = () => {
     setIsAnalyzing(true);
 

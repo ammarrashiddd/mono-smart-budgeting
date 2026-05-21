@@ -1,27 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { kmeans } from "ml-kmeans";
+import { saveFinancialAnalysisHistory } from "@/lib/analysisHelper";
 
-// --- FUNGSI UTALITAS: MENGHITUNG JARAK EUCLIDEAN ---
+// --- FUNGSI UTILITAS: MENGHITUNG JARAK EUCLIDEAN ---
 function getEuclideanDistance(point: number[], centroid: number[]): number {
   return Math.sqrt(
     Math.pow(point[0] - centroid[0], 2) + Math.pow(point[1] - centroid[1], 2),
   );
 }
 
-// --- FUNGSI UTALITAS: MENGHITUNG WCSS NYATA (BASED ON COORDINATES) ---
+// --- FUNGSI UTILITAS: MENGHITUNG WCSS NYATA ---
 function calculateWCSS(
   dataPoints: number[][],
   clusters: number[],
-  centroids: number[][], // Diubah eksplisit menjadi number[][] biar aman
+  centroids: number[][],
 ): number {
   let totalWcss = 0;
   for (let i = 0; i < dataPoints.length; i++) {
     const point = dataPoints[i];
     const clusterId = clusters[i];
-
-    // PERBAIKAN LINE 25: Tegaskan type-nya sebagai array 1D [X, Y] menggunakan 'as number[]'
     const centroid = centroids[clusterId] as unknown as number[];
 
     if (centroid) {
@@ -31,28 +30,60 @@ function calculateWCSS(
   return totalWcss;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // 1. Ambil data transaksi pengeluaran saja (amount < 0)
+    const userId = session.user.id;
+
+    // --- BACA PARAMETER FORCE DARI URL ---
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get("force") === "true";
+
+    // 1. Ambil data pengeluaran
     const transactions = await prisma.transaction.findMany({
-      where: { userId: session.user.id, amount: { lt: 0 } },
+      where: { userId, amount: { lt: 0 } },
       orderBy: { date: "asc" },
     });
 
-    if (transactions.length < 5) {
+    const currentTotalTx = transactions.length;
+    if (currentTotalTx < 5) {
       return NextResponse.json(
-        {
-          message:
-            "Data transaksi pengeluaran minimal harus berjumlah 5 untuk mencari K optimal via Elbow.",
-        },
+        { message: "Data minimal harus 5..." },
         { status: 400 },
       );
     }
+
+    const currentLastTxId = transactions[currentTotalTx - 1].id;
+
+    // ==========================================
+    // LOGIKA CACHE DIUBAH: Jika forceRefresh bernilai true, abaikan blok ini
+    // ==========================================
+    const cachedResult = await prisma.kmeansCache.findUnique({
+      where: { userId },
+    });
+
+    if (
+      !forceRefresh && // <-- TAMBAHKAN KONDISI INI
+      cachedResult &&
+      cachedResult.totalTx === currentTotalTx &&
+      cachedResult.lastTxId === currentLastTxId
+    ) {
+      return NextResponse.json({
+        wcss: cachedResult.wcss,
+        k: cachedResult.optimalK,
+        points: cachedResult.points,
+        elbow: cachedResult.elbow,
+        source: "database_cache",
+      });
+    }
+
+    // ==========================================
+    // JALANKAN KOMPUTASI K-MEANS JIKA DATA BERUBAH / CACHE KOSONG
+    // ==========================================
 
     // 2. Ekstraksi Fitur Asli
     const rawPoints = transactions.map((tx) => {
@@ -61,9 +92,7 @@ export async function GET() {
       return [day, amount];
     });
 
-    // ==========================================
-    // MIN-MAX NORMALIZATION (0 - 1)
-    // ==========================================
+    // Min-Max Normalization
     const rawAmounts = rawPoints.map((p) => p[1]);
     const maxAmount = Math.max(...rawAmounts, 1);
     const minAmount = Math.min(...rawAmounts, 0);
@@ -74,7 +103,7 @@ export async function GET() {
       return [normX, normY];
     });
 
-    // --- PROSES 1: JALANKAN PERULANGAN ELBOW (K = 1 sampai K = 6) ---
+    // Perulangan Elbow (K = 1 s/d K = 6)
     const elbowData = [];
     const kmeansResults: {
       [key: number]: {
@@ -90,7 +119,6 @@ export async function GET() {
         initialization: "kmeans++",
       });
 
-      // Paksa type centroids hasil library menjadi number[][] agar match dengan fungsi WCSS
       const currentCentroids = runKmeans.centroids as unknown as number[][];
 
       const wcssValue = calculateWCSS(
@@ -109,9 +137,7 @@ export async function GET() {
       };
     }
 
-    // ==========================================
-    // LOGIKA DETEKSI TEKUKAN SIKU & THRESHOLD AMBING
-    // ==========================================
+    // Deteksi Tekukan Siku (Curvature)
     let optimalK = 3;
     let maxCurvature = -Infinity;
 
@@ -130,6 +156,7 @@ export async function GET() {
       }
     }
 
+    // Threshold Ambing 5%
     if (optimalK === 2 && elbowData[2]) {
       const dropK2ToK3 = elbowData[1].wcss - elbowData[2].wcss;
       const threshold = elbowData[0].wcss * 0.05;
@@ -142,7 +169,7 @@ export async function GET() {
     const finalKmeans = kmeansResults[optimalK];
     const finalClusters = finalKmeans.clusters;
 
-    // --- PROSES 3: MENGURUTKAN KLASTER BERDASARKAN NOMINAL UANG ---
+    // Urutkan Klaster Berdasarkan Nominal Uang
     const clusterAverages = Array.from(
       { length: optimalK },
       (_, clusterIdx) => {
@@ -165,7 +192,25 @@ export async function GET() {
       clusterMapping[item.originalIdx] = newIdx;
     });
 
-    // --- PROSES 4: STRUKTURKAN ULANG DATA UNTUK RESPONSE FRONTEND ---
+    // ==========================================
+    // PENENTUAN ASSIGNED CLUSTER USER SAAT INI
+    // ==========================================
+    // Mengambil transaksi pengeluaran paling akhir dari array
+    const lastTransactionIndex = transactions.length - 1;
+    const originalLastClusterId = finalClusters[lastTransactionIndex];
+    // Konversi id klaster awal menjadi id klaster yang sudah diurutkan (0 = Hemat, dst)
+    const assignedCluster = clusterMapping[originalLastClusterId] ?? 0;
+
+    // ==========================================
+    // KIRIM DATA KE HELPER CLUSTER HISTORY & GEMINI
+    // ==========================================
+    await saveFinancialAnalysisHistory({
+      userId,
+      optimalK,
+      assignedCluster,
+    });
+
+    // Strukturkan Data untuk Frontend
     const clusteredData = transactions.map((tx, index) => {
       const originalClusterId = finalClusters[index];
       const sortedClusterId = clusterMapping[originalClusterId];
@@ -181,11 +226,36 @@ export async function GET() {
 
     const cleanElbowData = elbowData.filter((item) => item.k <= 5);
 
+    // ==========================================
+    // SIMPAN ATAU PERBARUI HASIL ANALISIS KE DATABASE CACHE
+    // ==========================================
+    await prisma.kmeansCache.upsert({
+      where: { userId },
+      update: {
+        optimalK,
+        wcss: finalKmeans.wcss,
+        points: clusteredData,
+        elbow: cleanElbowData,
+        totalTx: currentTotalTx,
+        lastTxId: currentLastTxId,
+      },
+      create: {
+        userId,
+        optimalK,
+        wcss: finalKmeans.wcss,
+        points: clusteredData,
+        elbow: cleanElbowData,
+        totalTx: currentTotalTx,
+        lastTxId: currentLastTxId,
+      },
+    });
+
     return NextResponse.json({
       wcss: finalKmeans.wcss,
       k: optimalK,
       points: clusteredData,
       elbow: cleanElbowData,
+      source: "fresh_computation", // Penanda komputasi baru berhasil dibuat
     });
   } catch (error) {
     console.error("K-Means Error:", error);
