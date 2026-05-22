@@ -38,8 +38,28 @@ export default function Goals() {
     }
   };
 
+  // 1. UTAMA: Jalankan fetch saat pertama kali render
   useEffect(() => {
     fetchGoals();
+  }, []);
+
+  // 2. SOLUSI AUTO REFRESH: Dengarkan event global dari komponen Transaksi
+  useEffect(() => {
+    const handleTransactionUpdate = () => {
+      console.log("Sinyal transaksi diterima! Merefresh data goals...");
+      fetchGoals(); // Mengambil ulang data persentase & nominal goals dari database
+    };
+
+    // Daftarkan pendengar event
+    window.addEventListener("transaction-updated", handleTransactionUpdate);
+
+    // Bersihkan listener saat komponen dibongkar (unmount) untuk menghindari memory leak
+    return () => {
+      window.removeEventListener(
+        "transaction-updated",
+        handleTransactionUpdate,
+      );
+    };
   }, []);
 
   const openAddModal = () => {

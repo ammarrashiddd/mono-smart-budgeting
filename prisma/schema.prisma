@@ -27,9 +27,12 @@ model Transaction {
   description String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
+  financialTargetId String? 
+  financialTarget   FinancialTarget? @relation(fields: [financialTargetId], references: [id], onDelete: SetNull)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([financialTargetId])
 }
 
 model FinancialTarget {
@@ -38,9 +41,9 @@ model FinancialTarget {
   title         String
   targetAmount  Float
   currentAmount Float     @default(0)
-  deadline      DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  transactions Transaction[]
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])

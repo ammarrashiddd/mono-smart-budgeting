@@ -7,14 +7,24 @@ import {
   Trash,
   CaretLeft,
   CaretRight,
-} from "@phosphor-icons/react"; // Menambahkan ikon navigasi halaman
+} from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
+
+// Menambahkan interface yang dibutuhkan parameter handleSaveBulk
+interface BulkInputItem {
+  description: string;
+  amount: string;
+  type: "income" | "expense";
+  date: string;
+  goalId?: string;
+}
 
 interface TransactionItem {
   id: string;
   description: string;
   amount: number;
   date: string;
+  financialTargetId?: string | null; // Tambahkan ini agar aman saat dikirim ke form edit
 }
 
 interface TransactionsProps {
@@ -30,17 +40,11 @@ export default function TransactionHistory({
 
   // State untuk mengontrol halaman pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Batasan jumlah data per halaman
+  const itemsPerPage = 5;
 
   // State Modal & Form Input
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<TransactionItem | null>(null);
-  const [inputName, setInputName] = useState("");
-  const [inputAmount, setInputAmount] = useState("");
-  const [inputType, setInputType] = useState<"income" | "expense">("expense");
-  const [inputDate, setInputDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
 
   const fetchTransactions = async () => {
     try {
@@ -62,8 +66,6 @@ export default function TransactionHistory({
 
   // --- LOGIKA HITUNGAN PAGINATION ---
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
-
-  // Mengambil potongan data transaksi sesuai halaman aktif
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentTransactions = transactions.slice(
@@ -71,7 +73,6 @@ export default function TransactionHistory({
     indexOfLastItem,
   );
 
-  // Reset ke halaman 1 jika setelah operasi CRUD jumlah halaman menyusut
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
@@ -81,10 +82,6 @@ export default function TransactionHistory({
 
   const openAddModal = () => {
     setEditingTx(null);
-    setInputName("");
-    setInputAmount("");
-    setInputType("expense");
-    setInputDate(new Date().toISOString().split("T")[0]);
     setIsModalOpen(true);
   };
 
@@ -93,60 +90,54 @@ export default function TransactionHistory({
       console.error("Item edit tidak memiliki id", item);
       return;
     }
-
-    setEditingTx(item);
-    setInputName(item.description);
-    setInputAmount(Math.abs(item.amount).toString());
-    setInputType(item.amount >= 0 ? "income" : "expense");
-    setInputDate(new Date(item.date).toISOString().split("T")[0]);
+    // Mapping format data agar sesuai dengan apa yang dituntut TransactionsFormProps.editingTx
+    setEditingTx({
+      id: item.id,
+      description: item.description,
+      amount: item.amount,
+      date: item.date,
+      financialTargetId: item.financialTargetId || null,
+    });
     setIsModalOpen(true);
   };
 
-  const handleSaveBulk = async (items: any[]) => {
+  const handleSaveBulk = async (items: BulkInputItem[]) => {
     try {
       if (editingTx) {
-        // Jika edit data tunggal biasa
-        const item = items[0];
-        const normalizedAmount =
-          item.type === "expense"
-            ? -Math.abs(parseFloat(item.amount))
-            : Math.abs(parseFloat(item.amount));
-
-        await fetch(`/api/transactions/${editingTx.id}`, {
+        const res = await fetch(`/api/transactions/${editingTx.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description: item.description,
-            amount: normalizedAmount,
-            date: item.date,
-          }),
+          body: JSON.stringify(items),
         });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Gagal memperbarui transaksi");
+        }
+        alert("Transaksi berhasil diperbarui!");
       } else {
-        // Jika simpan data banyak sekaligus, tembak API dengan Promise.all agar efisien
-        await Promise.all(
-          items.map((item) => {
-            const normalizedAmount =
-              item.type === "expense"
-                ? -Math.abs(parseFloat(item.amount))
-                : Math.abs(parseFloat(item.amount));
-            return fetch("/api/transactions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                description: item.description,
-                amount: normalizedAmount,
-                date: item.date,
-              }),
-            });
-          }),
-        );
+        const res = await fetch("/api/transactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(items),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Gagal menyimpan data transaksi");
+        }
+        alert(`Berhasil menyimpan ${items.length} transaksi!`);
       }
 
-      fetchTransactions(); // Segarkan riwayat tabel
-      onTransactionChange?.(); // Picu ulang grafik & statistik
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error("Gagal menyimpan bulk transaksi:", err);
+      // 🔥 PERBAIKAN UTAMA: Ambil data terbaru dari database agar UI langsung ter-update otomatis
+      await fetchTransactions();
+
+      // Beritahu komponen parent (Dashboard) dan widget target keuangan (Goals)
+      onTransactionChange?.();
+      window.dispatchEvent(new Event("transaction-updated"));
+    } catch (error: any) {
+      console.error("Gagal menyimpan transaksi:", error);
+      throw error;
     }
   };
 
@@ -156,12 +147,26 @@ export default function TransactionHistory({
         const res = await fetch(`/api/transactions/${id}`, {
           method: "DELETE",
         });
+
         if (res.ok) {
           setTransactions(transactions.filter((t) => t.id !== id));
           onTransactionChange?.();
+          window.dispatchEvent(new Event("transaction-updated"));
+        } else {
+          const contentType = res.headers.get("content-type");
+          let errorMessage = "Gagal menghapus transaksi";
+
+          if (contentType && contentType.includes("application/json")) {
+            const errData = await res.json();
+            errorMessage = errData.message || errorMessage;
+          } else {
+            errorMessage = `Server merespons dengan status ${res.status}`;
+          }
+          throw new Error(errorMessage);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Gagal menghapus transaksi:", err);
+        alert(`Terjadi kesalahan: ${err.message}`);
       }
     }
   };
@@ -214,7 +219,6 @@ export default function TransactionHistory({
               Belum ada riwayat transaksi.
             </p>
           ) : (
-            // Merender data dari potongan halaman aktif (currentTransactions) bukan transactions utuh
             currentTransactions.map((item) => (
               <div
                 key={item.id}
@@ -226,7 +230,7 @@ export default function TransactionHistory({
                       {item.description}
                     </p>
                     <div className="mt-0.5">
-                      <span className="text-[8px] md:text-[9px] font-medium text-secondary/30 hidden sm:block">
+                      <span className="text-[8px] md:text-[9px] font-medium text-secondary/30 block">
                         {formatDate(item.date)}
                       </span>
                     </div>
@@ -287,7 +291,7 @@ export default function TransactionHistory({
               </button>
               <button
                 onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev - 1 + 2, totalPages))
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={currentPage === totalPages}
                 className="p-2 border border-secondary/10 rounded-lg hover:bg-secondary/5 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all"
@@ -304,7 +308,17 @@ export default function TransactionHistory({
         <TransactionsForm
           isModalOpen={isModalOpen}
           setIsModalOpen={setIsModalOpen}
-          editingTx={editingTx}
+          editingTx={
+            editingTx
+              ? {
+                  id: editingTx.id,
+                  description: editingTx.description,
+                  amount: editingTx.amount,
+                  date: editingTx.date,
+                  goalId: editingTx.financialTargetId || null, // mapping agar match dengan interface TransactionsFormProps
+                }
+              : null
+          }
           handleSaveBulk={handleSaveBulk}
         />
       )}
