@@ -17,6 +17,7 @@ model User {
   clusterHistories ClusterHistory[]
   financialTargets FinancialTarget[]
   transactions     Transaction[]
+  aiInsights       AiInsight[]
 }
 
 model Transaction {
@@ -75,4 +76,19 @@ model KmeansCache {
   updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiInsight {
+  id               String   @id @default(uuid())
+  userId           String   @unique // UBAH MENJADI @unique AGAR BERPERILAKU SEPERTI CACHE
+  personaName      String
+  kategoriTerbesar String
+  kondisiKesehatan String
+  aiSaranText      String   @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt // Tambahan opsional untuk memantau waktu update cache
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

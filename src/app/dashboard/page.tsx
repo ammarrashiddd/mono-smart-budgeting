@@ -16,42 +16,95 @@ export default function DashboardPage() {
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
 
   // State untuk mengontrol tampilan analisis ML & AI
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState<boolean>(false);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
 
-  // ==========================================
-  // PERBAIKAN: CEK CACHE K-MEANS SAAT COMPONENT MOUNT
-  // ==========================================
-  useEffect(() => {
-    const checkKmeansCache = async () => {
-      if (!session?.user) return; // Tunggu sampai sesi user siap
+  // State sentral untuk menampung hasil fetch riil dari database
+  const [mlData, setMlData] = useState<any>(null);
+  const [aiData, setAiData] = useState<any>(null);
 
-      try {
-        const res = await fetch("/api/analysis/kmeans");
-        if (res.ok) {
-          const data = await res.json();
-          // Jika data sukses dimuat dan berasal dari cache database, langsung tampilkan seksi ML & AI
-          if (data && data.points && data.points.length > 0) {
-            setShowAnalysis(true);
-          }
-        }
-      } catch (err) {
-        console.error("Gagal memeriksa cache K-Means:", err);
+  // ========================================================
+  // 1. FUNGSI PARALEL UNTUK MENGAMBIL DATA DARI BACKEND
+  // ========================================================
+  const fetchAllAnalysisData = async () => {
+    if (!session?.user) return;
+
+    try {
+      // Mengambil kedua data secara bersamaan (paralel) untuk efisiensi waktu jaringan
+      const [kmeansRes, aiRes] = await Promise.all([
+        fetch("/api/analysis/kmeans"),
+        fetch("/api/analysis/ai-insight"),
+      ]);
+
+      // Jika user belum pernah melakukan kalkulasi (status 404), sembunyikan seksi analisis
+      if (kmeansRes.status === 404 || aiRes.status === 404) {
+        setShowAnalysis(false);
+        return;
       }
-    };
 
-    checkKmeansCache();
+      if (kmeansRes.ok && aiRes.ok) {
+        const kmeansData = await kmeansRes.json();
+        const aiInsightData = await aiRes.json();
+
+        // Simpan data riil ke dalam state induk
+        setMlData(kmeansData);
+        setAiData(aiInsightData);
+
+        // Tampilkan seksi analisis jika koordinat/points K-Means valid
+        if (kmeansData?.points && kmeansData.points.length > 0) {
+          setShowAnalysis(true);
+        }
+      }
+    } catch (err) {
+      console.error("Gagal memuat integrasi data analisis:", err);
+    }
+  };
+
+  // Cek cache database secara otomatis saat komponen pertama kali dimuat
+  useEffect(() => {
+    fetchAllAnalysisData();
   }, [session]);
 
-  // Fungsi untuk mensimulasikan proses running algoritma ML & AI secara manual
-  const handleTriggerAnalysis = () => {
+  // ========================================================
+  // 2. FUNGSI MANUAL SAAT TOMBOL DIKLIK (RESET & HITUNG ULANG)
+  // ========================================================
+  const handleTriggerAnalysis = async () => {
+    // Kunci tombol dan aktifkan loading skeleton komponen anak
     setIsAnalyzing(true);
 
-    // Memberikan efek loading/proses hitung clustering selama 1.5 detik
-    setTimeout(() => {
+    try {
+      // JIKA RE-RUN: Hapus cache lama di tabel KmeansCache & AiInsight melalui API reset
+      if (showAnalysis) {
+        const resetRes = await fetch("/api/analysis/reset", {
+          method: "DELETE",
+        });
+
+        if (!resetRes.ok) {
+          throw new Error("Gagal membersihkan cache lama di database");
+        }
+
+        // Kosongkan state data agar layout langsung bertransisi menjadi skeleton sekejap
+        setMlData(null);
+        setAiData(null);
+      }
+
+      // PICU HITUNG ULANG K-MEANS & PEMANGGILAN ULANG GEMINI AI (POST)
+      const res = await fetch("/api/analysis/kmeans?force=true", {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        throw new Error("Gagal memproses perhitungan algoritma pada backend.");
+      }
+
+      // Ambil hasil perhitungan segar yang baru saja masuk ke database
+      await fetchAllAnalysisData();
+    } catch (error) {
+      console.error("Gagal melakukan kalkulasi ulang:", error);
+    } finally {
+      // Matikan loading state setelah seluruh alur pengunduhan data rampung
       setIsAnalyzing(false);
-      setShowAnalysis(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -68,12 +121,12 @@ export default function DashboardPage() {
         </h3>
       </header>
 
-      {/* --- Section 1: Stats (Responsive Grid) --- */}
+      {/* --- Section 1: Stats --- */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Stats refreshKey={statsRefreshKey} />
       </div>
 
-      {/* --- Section 2: Goals (Responsive List) --- */}
+      {/* --- Section 2: Goals --- */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Goals />
       </div>
@@ -115,27 +168,17 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* --- LOADING SKELETON PLACEHOLDER --- */}
-      {isAnalyzing && (
-        <div className="px-4 md:px-12 mt-8 space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white rounded-lg p-8 border border-secondary/5 shadow-xl space-y-4 animate-pulse">
-            <div className="h-5 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-48 bg-gray-100 rounded-xl"></div>
-          </div>
-        </div>
-      )}
-
-      {/* --- SEKSI ANALISIS: HANYA MUNCUL JIKA SHOWANALYSIS = TRUE --- */}
-      {showAnalysis && !isAnalyzing && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 joint-analysis-wrapper">
+      {/* --- SEKSI ANALISIS: OTOMATIS BERUBAH JADI SKELETON SAAT PROSES RUNNING --- */}
+      {(showAnalysis || isAnalyzing) && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 joint-analysis-wrapper space-y-6">
           {/* --- Section 4: Machine Learning Visualization */}
           <div className="px-4 md:px-12 mt-8">
-            <Ml />
+            <Ml data={mlData} isLoading={isAnalyzing} />
           </div>
 
           {/* --- Section 5: AI Strategy Analysis */}
-          <div className="px-4 md:px-12 mt-6 md:mt-10">
-            <Ai />
+          <div className="px-4 md:px-12">
+            <Ai data={aiData} isLoading={isAnalyzing} />
           </div>
         </div>
       )}
