@@ -9,6 +9,7 @@ import { Stats } from "@/components/ui/dashboard/Stats";
 import Transactions from "@/components/ui/dashboard/Transactions";
 import { useSession } from "next-auth/react";
 import { ChartBar, Sparkle } from "@phosphor-icons/react";
+import Charts from "@/components/ui/dashboard/Charts";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   // State sentral untuk menampung hasil fetch riil dari database
   const [mlData, setMlData] = useState<any>(null);
   const [aiData, setAiData] = useState<any>(null);
+  const [chartsData, setChartsData] = useState<any>(null);
 
   // ========================================================
   // 1. FUNGSI PARALEL UNTUK MENGAMBIL DATA DARI BACKEND
@@ -30,27 +32,30 @@ export default function DashboardPage() {
     if (!session?.user) return;
 
     try {
-      // Mengambil kedua data secara bersamaan (paralel) untuk efisiensi waktu jaringan
-      const [kmeansRes, aiRes] = await Promise.all([
+      // 🔥 PERBAIKAN: Tangkap res ketiga (chartRes) di dalam Promise.all
+      const [kmeansRes, aiRes, chartRes] = await Promise.all([
         fetch("/api/analysis/kmeans"),
         fetch("/api/analysis/ai-insight"),
+        fetch("/api/analysis/charts"), // Endpoint data statistik grafik
       ]);
 
-      // Jika user belum pernah melakukan kalkulasi (status 404), sembunyikan seksi analisis
+      // Jika user belum pernah kalkulasi, sembunyikan seksi analisis
       if (kmeansRes.status === 404 || aiRes.status === 404) {
         setShowAnalysis(false);
         return;
       }
 
-      if (kmeansRes.ok && aiRes.ok) {
+      if (kmeansRes.ok && aiRes.ok && chartRes.ok) {
         const kmeansData = await kmeansRes.json();
         const aiInsightData = await aiRes.json();
+        const statsChartData = await chartRes.json(); // 🔥 Ambil JSON data grafik
 
-        // Simpan data riil ke dalam state induk
+        // Simpan data riil ke dalam state induk masing-masing
         setMlData(kmeansData);
         setAiData(aiInsightData);
+        setChartsData(statsChartData); // 🔥 PERBAIKAN: Masukkan ke state chartsData
 
-        // Tampilkan seksi analisis jika koordinat/points K-Means valid
+        // Tampilkan seksi analisis jika koordinat K-Means valid
         if (kmeansData?.points && kmeansData.points.length > 0) {
           setShowAnalysis(true);
         }
@@ -171,12 +176,17 @@ export default function DashboardPage() {
       {/* --- SEKSI ANALISIS: OTOMATIS BERUBAH JADI SKELETON SAAT PROSES RUNNING --- */}
       {(showAnalysis || isAnalyzing) && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 joint-analysis-wrapper space-y-6">
-          {/* --- Section 4: Machine Learning Visualization */}
+          {/* chart */}
           <div className="px-4 md:px-12 mt-8">
+            <Charts data={chartsData} isLoading={isAnalyzing} />
+          </div>
+
+          {/* ml */}
+          <div className="px-4 md:px-12">
             <Ml data={mlData} isLoading={isAnalyzing} />
           </div>
 
-          {/* --- Section 5: AI Strategy Analysis */}
+          {/* ai */}
           <div className="px-4 md:px-12">
             <Ai data={aiData} isLoading={isAnalyzing} />
           </div>

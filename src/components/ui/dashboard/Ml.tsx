@@ -117,7 +117,7 @@ export default function Ml({ data, isLoading }: MlProps) {
             </h3>
           </div>
           <div className="text-[10px] font-bold text-tertiary bg-tertiary/5 px-2.5 py-1 rounded border border-tertiary/10 uppercase tracking-widest">
-            Metode Euclidean 2D
+            Metode Elbow
           </div>
         </div>
 
