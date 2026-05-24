@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { calculateUserStats } from "@/lib/finances"; // Import fungsi utilitas
+import { calculateUserStats } from "@/lib/finances";
 import { generateFinancialInsight } from "@/app/services/aiService";
 
 interface SaveHistoryParams {
@@ -17,13 +17,28 @@ export async function saveFinancialAnalysisHistory({
   const { totalPemasukan, totalPengeluaran, sisaSaldo, ringkasanTransaksi } =
     await calculateUserStats(userId);
 
-  // 2. Bungkus konteks data finansial untuk Gemini AI
+  // 1.5. AMBIL DATA TARGET KEUANGAN (GOALS) AKTIF USER DARI DATABASE
+  const userGoals = await prisma.financialTarget.findMany({
+    where: { userId },
+    select: {
+      title: true,
+      targetAmount: true,
+      currentAmount: true,
+    },
+  });
+
+  // 2. Bungkus konteks data finansial secara utuh untuk Gemini AI
   const dataKonteksFinansial = {
     totalPemasukan,
     totalPengeluaran,
     sisaSaldo,
     assignedCluster,
     transaksiTerakhir: ringkasanTransaksi,
+    targetKeuangan: userGoals.map((g) => ({
+      title: g.title,
+      targetAmount: Number(g.targetAmount),
+      currentAmount: Number(g.currentAmount),
+    })),
   };
 
   // 3. Ambil data teks dari AI Service
@@ -33,26 +48,28 @@ export async function saveFinancialAnalysisHistory({
   // 4. GABUNGKAN DATA DAN SIMPAN KE MASING-MASING TABEL
   // ========================================================
 
-  // A. Simpan ke model AiInsight
-  // A. Menggunakan UPSERT untuk AiInsight (Berperilaku seperti cache)
+  // Satukan saran utama dan ulasan target keuangan menggunakan String Template (\n\n untuk baris baru)
+  const teksSaranGabungan = `${aiResult.aiSaranText}\n\n${aiResult.reviewGoals}`;
+
+  // A. Menggunakan UPSERT untuk AiInsight (Berperilaku seperti cache dashboard)
   await prisma.aiInsight.upsert({
-    where: { userId }, // Mencari berdasarkan userId yang unik
+    where: { userId },
     update: {
       personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: aiResult.aiSaranText,
+      aiSaranText: teksSaranGabungan,
     },
     create: {
       userId,
       personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: aiResult.aiSaranText,
+      aiSaranText: teksSaranGabungan,
     },
   });
 
-  // B. Tetap gunakan CREATE untuk ClusterHistory jika kamu ingin menyimpan rekam jejak log logisnya
+  // B. 🔥 PERBAIKAN: Menampung hasil create ke variabel newHistory agar tidak undifined saat direturn
   const newHistory = await prisma.clusterHistory.create({
     data: {
       userId,
@@ -64,7 +81,7 @@ export async function saveFinancialAnalysisHistory({
       sisaSaldo,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: aiResult.aiSaranText,
+      aiSaranText: teksSaranGabungan,
     },
   });
 
