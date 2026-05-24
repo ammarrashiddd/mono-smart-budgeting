@@ -8,7 +8,7 @@ import Ml from "@/components/ui/dashboard/Ml";
 import { Stats } from "@/components/ui/dashboard/Stats";
 import Transactions from "@/components/ui/dashboard/Transactions";
 import { useSession } from "next-auth/react";
-import { ChartBar, Sparkle } from "@phosphor-icons/react";
+import { ChartBar, Sparkle, WarningCircle } from "@phosphor-icons/react";
 import Charts from "@/components/ui/dashboard/Charts";
 
 export default function DashboardPage() {
@@ -16,134 +16,178 @@ export default function DashboardPage() {
   const username = session?.user?.name;
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
 
-  // State untuk mengontrol tampilan analisis ML & AI
   const [showAnalysis, setShowAnalysis] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
 
-  // State sentral untuk menampung hasil fetch riil dari database
+  // 🛠️ STATE BARU: Menampung satu detail error utama untuk memblokir halaman
+  const [globalError, setGlobalError] = useState<{
+    status: boolean;
+    title: string;
+    description: string;
+  }>({
+    status: false,
+    title: "",
+    description: "",
+  });
+
   const [mlData, setMlData] = useState<any>(null);
   const [aiData, setAiData] = useState<any>(null);
   const [chartsData, setChartsData] = useState<any>(null);
 
   // ========================================================
-  // 1. FUNGSI PARALEL UNTUK MENGAMBIL DATA DARI BACKEND
+  // 1. FUNGSI AMBIL DATA DENGAN BLOCKING ERROR HANDLER
   // ========================================================
   const fetchAllAnalysisData = async () => {
     if (!session?.user) return;
 
+    // Reset status error sebelum melakukan penyisiran (scouting)
+    setGlobalError({ status: false, title: "", description: "" });
+
     try {
-      // 🔥 PERBAIKAN: Tangkap res ketiga (chartRes) di dalam Promise.all
-      const [kmeansRes, aiRes, chartRes] = await Promise.all([
+      // Ambil semua data secara paralel menggunakan Promise.allSettled
+      const [kmeansRes, aiRes, chartRes] = await Promise.allSettled([
         fetch("/api/analysis/kmeans"),
         fetch("/api/analysis/ai-insight"),
-        fetch("/api/analysis/charts"), // Endpoint data statistik grafik
+        fetch("/api/analysis/charts"),
       ]);
 
-      // Jika user belum pernah kalkulasi, sembunyikan seksi analisis
-      if (kmeansRes.status === 404 || aiRes.status === 404) {
-        setShowAnalysis(false);
+      // 🔍 LANGKAH SCOUTING 1: Cek apakah ada request network yang gagal/rejected
+      if (
+        chartRes.status === "rejected" ||
+        (chartRes.status === "fulfilled" && !chartRes.value.ok)
+      ) {
+        triggerGlobalError(
+          "Gagal Memuat Grafik Statistik",
+          "Terjadi kesalahan saat mengambil visualisasi tren transaksi harian Anda dari server.",
+        );
+        return; // Hentikan fungsi, jangan eksekusi kode di bawahnya
+      }
+
+      if (
+        kmeansRes.status === "rejected" ||
+        (kmeansRes.status === "fulfilled" && !kmeansRes.value.ok)
+      ) {
+        triggerGlobalError(
+          "Komputasi Klaster Gagal",
+          "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
+        );
         return;
       }
 
-      if (kmeansRes.ok && aiRes.ok && chartRes.ok) {
-        const kmeansData = await kmeansRes.json();
-        const aiInsightData = await aiRes.json();
-        const statsChartData = await chartRes.json(); // 🔥 Ambil JSON data grafik
-
-        // Simpan data riil ke dalam state induk masing-masing
-        setMlData(kmeansData);
-        setAiData(aiInsightData);
-        setChartsData(statsChartData); // 🔥 PERBAIKAN: Masukkan ke state chartsData
-
-        // Tampilkan seksi analisis jika koordinat K-Means valid
-        if (kmeansData?.points && kmeansData.points.length > 0) {
-          setShowAnalysis(true);
-        }
+      if (
+        aiRes.status === "rejected" ||
+        (aiRes.status === "fulfilled" && !aiRes.value.ok)
+      ) {
+        triggerGlobalError(
+          "Rekomendasi AI Tidak Tersedia",
+          "Modul kecerdasan buatan (Gemini AI) gagal merumuskan keputusan penasihat keuangan untuk akun Anda.",
+        );
+        return;
       }
+
+      // 🔍 LANGKAH SCOUTING 2: Cek validasi payload internal data (Misal: Transaksi Kurang)
+      const kmeansData = await (kmeansRes.value as Response).json();
+
+      if (
+        kmeansData?.isInsufficient ||
+        !kmeansData?.points ||
+        kmeansData.points.length <= 6
+      ) {
+        const totalTx = kmeansData?.points?.length || 0;
+        triggerGlobalError(
+          "Data Transaksi Belum Mencukupi",
+          `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal lebih dari 6 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
+        );
+        setMlData(kmeansData); // Tetap simpan untuk referensi jumlah data
+        return;
+      }
+
+      // 🎯 JIKA SEMUA API AMAN & LOLOS VALIDASI
+      const aiInsightData = await (aiRes.value as Response).json();
+      const statsChartData = await (chartRes.value as Response).json();
+
+      setMlData(kmeansData);
+      setAiData(aiInsightData);
+      setChartsData(statsChartData);
+
+      // Tampilkan ketiga komponen secara bersamaan
+      setShowAnalysis(true);
     } catch (err) {
       console.error("Gagal memuat integrasi data analisis:", err);
+      triggerGlobalError(
+        "Kesalahan Integrasi Sistem",
+        "Terjadi kegagalan internal saat menyatukan seluruh modul analisis finansial.",
+      );
     }
   };
 
-  // Cek cache database secara otomatis saat komponen pertama kali dimuat
+  // Fungsi pembantu untuk memblokir layout dan menyalakan panel error
+  const triggerGlobalError = (title: string, description: string) => {
+    setGlobalError({ status: true, title, description });
+    setShowAnalysis(false); // Sembunyikan seksi analisis komponen (Charts, Ml, Ai)
+  };
+
   useEffect(() => {
     fetchAllAnalysisData();
   }, [session]);
 
-  // ========================================================
-  // 2. FUNGSI MANUAL SAAT TOMBOL DIKLIK (RESET & HITUNG ULANG)
-  // ========================================================
   const handleTriggerAnalysis = async () => {
-    // Kunci tombol dan aktifkan loading skeleton komponen anak
     setIsAnalyzing(true);
+    setGlobalError({ status: false, title: "", description: "" }); // Bersihkan error lama saat memproses ulang
 
     try {
-      // JIKA RE-RUN: Hapus cache lama di tabel KmeansCache & AiInsight melalui API reset
       if (showAnalysis) {
         const resetRes = await fetch("/api/analysis/reset", {
           method: "DELETE",
         });
+        if (!resetRes.ok) throw new Error("Gagal membersihkan cache lama");
 
-        if (!resetRes.ok) {
-          throw new Error("Gagal membersihkan cache lama di database");
-        }
-
-        // Kosongkan state data agar layout langsung bertransisi menjadi skeleton sekejap
         setMlData(null);
         setAiData(null);
       }
 
-      // PICU HITUNG ULANG K-MEANS & PEMANGGILAN ULANG GEMINI AI (POST)
       const res = await fetch("/api/analysis/kmeans?force=true", {
         method: "POST",
       });
-
-      if (!res.ok) {
-        throw new Error("Gagal memproses perhitungan algoritma pada backend.");
-      }
-
-      // Ambil hasil perhitungan segar yang baru saja masuk ke database
-      await fetchAllAnalysisData();
+      if (!res.ok) throw new Error("Gagal memproses perhitungan pada backend.");
     } catch (error) {
       console.error("Gagal melakukan kalkulasi ulang:", error);
     } finally {
-      // Matikan loading state setelah seluruh alur pengunduhan data rampung
+      await fetchAllAnalysisData();
       setIsAnalyzing(false);
     }
   };
 
   return (
     <main className="bg-primary min-h-screen w-full pb-10 text-secondary">
-      {/* navbar */}
       <nav className="h-16 md:h-20 px-4 md:px-12 bg-tertiary flex items-center border-b border-tertiary/10 shadow-sm sticky top-0 z-50">
         <Navbar name={username} />
       </nav>
 
-      {/* header */}
       <header className="px-4 md:px-12 mt-6 md:mt-10">
         <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tighter text-secondary leading-tight capitalize">
           Hello {username}, <br className="block sm:hidden" /> Welcome Back!
         </h3>
       </header>
 
-      {/* --- Section 1: Stats --- */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Stats refreshKey={statsRefreshKey} />
       </div>
 
-      {/* --- Section 2: Goals --- */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Goals />
       </div>
 
-      {/* --- Section 3: Transaction History */}
       <div className="px-4 md:px-12 mt-6 md:mt-10">
         <Transactions
-          onTransactionChange={() => setStatsRefreshKey((prev) => prev + 1)}
+          onTransactionChange={() => {
+            setStatsRefreshKey((prev) => prev + 1);
+            fetchAllAnalysisData(); // Otomatis cek ulang kondisi error jika ada transaksi masuk/keluar baru
+          }}
         />
       </div>
 
-      {/* --- TOMBOL AKSI ANALISIS (ML & AI) --- */}
+      {/* --- TOMBOL AKSI ANALISIS --- */}
       <div className="px-4 md:px-12 mt-10 flex justify-center">
         <button
           onClick={handleTriggerAnalysis}
@@ -173,20 +217,36 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* --- SEKSI ANALISIS: OTOMATIS BERUBAH JADI SKELETON SAAT PROSES RUNNING --- */}
-      {(showAnalysis || isAnalyzing) && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 joint-analysis-wrapper space-y-6">
-          {/* chart */}
-          <div className="px-4 md:px-12 mt-8">
+      {/* ======================================================== */}
+      {/* 🛠️ WIDGET ERROR GLOBAL TUNGGAL (MENGGANTIKAN KETIGA MODUL) */}
+      {/* ======================================================== */}
+      {globalError.status && !isAnalyzing && (
+        <div className="px-4 md:px-12 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-xl p-10 border border-secondary/5 shadow-sm flex flex-col items-center justify-center text-center min-h-70">
+            <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center mb-4 border border-amber-100">
+              <WarningCircle size={32} weight="duotone" />
+            </div>
+            <h4 className="text-base font-black text-secondary tracking-tight">
+              {globalError.title}
+            </h4>
+            <p className="text-xs text-secondary/50 max-w-md mt-2 leading-relaxed">
+              {globalError.description}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* --- SEKSI LAYOUT UTAMA (HANYA MUNCUL JIKA KETIGANYA LOLOS FETCH & VALIDASI) --- */}
+      {showAnalysis && !globalError.status && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 joint-analysis-wrapper space-y-6 mt-8">
+          <div className="px-4 md:px-12">
             <Charts data={chartsData} isLoading={isAnalyzing} />
           </div>
 
-          {/* ml */}
           <div className="px-4 md:px-12">
             <Ml data={mlData} isLoading={isAnalyzing} />
           </div>
 
-          {/* ai */}
           <div className="px-4 md:px-12">
             <Ai data={aiData} isLoading={isAnalyzing} />
           </div>
