@@ -158,7 +158,7 @@ export default function Charts({ data, isLoading }: ChartProps) {
       <div className="bg-white p-5 md:p-6 rounded-xl border border-primary w-full flex flex-col justify-between">
         <div className="mb-8">
           <h3 className="text-lg font-black text-secondary">
-            Tren Saldo Kumulatif
+            Tren Sisa Saldo Kumulatif
           </h3>
         </div>
 
