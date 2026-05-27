@@ -71,10 +71,10 @@ git clone [https://github.com/ammarrashiddd/mono-smart-budgeting.git]
 cd repo-name
 npm install
 
-### 3. Sinkronisasi Database (Prisma Migration)
+### Sinkronisasi Database (Prisma Migration)
 npx prisma generate
 npx prisma db push
 
-### 4. Jalankan Server Pengembangan
+### Jalankan Server Pengembangan
 npm run dev
 ```
