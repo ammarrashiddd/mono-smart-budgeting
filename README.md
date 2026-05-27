@@ -42,21 +42,51 @@ Data koordinat klaster, frekuensi transaksi (`totalTx`), dan metrik anggaran rii
 
 ## Alur Kerja Sistem (Data Pipeline)
 
-[Transaksi Pengeluaran] ──> Normalisasi Min-Max (Tanggal & Nominal)
-│
-┌──────────────────────────────────────┘
-│
-├──> Loop K=1 s/d K=6 ──> Hitung WCSS Nyata ──> Deteksi Elbow Point (K Optimal)
-│
-├──> Sorting Klaster Ordinal (Rata-rata Nominal Terendah ──> Tertinggi)
-│
-├──> [Database] Upsert ke KmeansCache & Ambil Target Keuangan Aktif
-│
-├──> Hitung Rasio Riil Anggaran & Suapi Konteks ke Gemini 2.5 Flash
-│
-├──> [Database] Simpan Hasil Analisis Terstruktur ke AiInsight & ClusterHistory
-│
-└──> [UI Component] Render Grafik Recharts & Tampilkan Nasihat Finansial AI
+1. **Ekstraksi & Normalisasi Data Transaksi**
+
+- Sistem menyaring seluruh data transaksi pengeluaran aktif pengguna pada bulan berjalan.
+- Data ditransformasikan ke dalam koordinat 2D (Hari/Tanggal sebagai komponen X, dan Nominal Absolut Pengeluaran sebagai komponen Y).
+- Dilakukan **Min-Max Normalization** pada kedua komponen agar skala tanggal ($1-31$) tidak didominasi atau terdistorsi oleh besarnya skala nominal uang.
+
+2. **Iterasi K-Means & Evaluasi Nilai WCSS**
+
+- Sistem melakukan perulangan (_looping_) komputasi algoritma K-Means dari $K=1$ hingga $K=6$.
+- Pada setiap nilai $K$, fungsi menghitung nilai inersia kuadrat asli atau _Within-Cluster Sum of Squares_ (WCSS) berbasis jarak _Euclidean_.
+
+3. **Otomatisasi Deteksi Siku (Elbow Point)**
+
+- Sistem menganalisis tingkat penurunan atau kemiringan grafik varians (_curvature_) dari array WCSS yang terkumpul.
+- Titik belokan sudut tertajam (_elbow point_) dikunci secara otomatis untuk menentukan jumlah kelompok ($K$ Optimal) terbaik secara matematis.
+
+4. **Sorting Klaster Ordinal (Standardisasi Urutan)**
+
+- Sistem mengurutkan ulang indeks klaster secara ordinal berdasarkan rata-rata nominal pengeluaran terkecil hingga terbesar.
+- Hal ini memastikan Klaster #1 selalu merepresentasikan pengeluaran rutin/kecil dan klaster tertinggi merepresentasikan pengeluaran skala besar/impulsif (konsisten di setiap kalkulasi).
+
+5. **Penyimpanan Cache Data Science (Database Write 1)**
+
+- Hasil koordinat titik sebaran (_points_) dan array koordinat belokan siku (_elbow_) di-simpan atau diperbarui ke dalam tabel `KmeansCache` menggunakan operasi `upsert`.
+- Pada tahap yang sama, sistem melakukan query paralel untuk mengambil data target keuangan aktif pengguna (`FinancialTarget`).
+
+6. **Kalkulasi Rasio Riil Anggaran & Pengayaan Konteks AI**
+
+- Sistem menghitung persentase riil total pengeluaran dan sisa saldo tabungan saat ini terhadap total pemasukan pengguna.
+- Seluruh log statistik K-Means, daftar transaksi terakhir, data target, serta persentase rasio keuangan dibungkus menjadi satu objek JSON (`FinancialInsightInput`) untuk disuapkan ke Google Gemini 2.5 Flash.
+
+7. **Generasi Rekomendasi Finansial Terstruktur oleh LLM**
+
+- Model `gemini-2.5-flash` mengevaluasi data tersebut menggunakan acuan **Aturan Keuangan 50/30/20**.
+- AI memproduksi respons JSON terstruktur yang berisi: nama persona psikologis belanja, kategori pengeluaran terbesar, status kondisi kesehatan finansial, teks kritik/saran taktis anggaran, serta ulasan progres target keuangan.
+
+8. **Penyimpanan Hasil Analisis Naratif (Database Write 2 & 3)**
+
+- Data teks naratif hasil produksi AI disimpan bersih ke database.
+- Sistem melakukan `upsert` ke tabel `AiInsight` (sebagai data tunggal _real-time dashboard_) dan melakukan `create` ke tabel `ClusterHistory` (sebagai rekam jejak log aktivitas jangka panjang).
+
+9. **Rendering Komponen Antarmuka (UI Render)**
+
+- Frontend menerima respons data bersih dari server.
+- Komponen `Ml.tsx` merender **Scatter Plot Pembagian Klaster** berdampingan langsung dengan **Kurva Metode Elbow** menggunakan Recharts, sekaligus menyajikan kotak teks rekomendasi personal dari AI secara interaktif.
 
 ## Memulai (Getting Started)
 
@@ -71,10 +101,10 @@ git clone [https://github.com/ammarrashiddd/mono-smart-budgeting.git]
 cd repo-name
 npm install
 
-### 3. Sinkronisasi Database (Prisma Migration)
+### Sinkronisasi Database (Prisma Migration)
 npx prisma generate
 npx prisma db push
 
-### 4. Jalankan Server Pengembangan
+### Jalankan Server Pengembangan
 npm run dev
 ```
