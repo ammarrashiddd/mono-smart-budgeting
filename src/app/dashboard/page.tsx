@@ -136,16 +136,9 @@ export default function DashboardPage() {
     setGlobalError({ status: false, title: "", description: "" }); // Bersihkan error lama saat memproses ulang
 
     try {
-      if (showAnalysis) {
-        const resetRes = await fetch("/api/analysis/reset", {
-          method: "DELETE",
-        });
-        if (!resetRes.ok) throw new Error("Gagal membersihkan cache lama");
-
-        setMlData(null);
-        setAiData(null);
-      }
-
+      // Tidak perlu menghapus cache saat user menekan Ulangi Analisis.
+      // Jika data transaksi tidak berubah, backend akan mendeteksi dan
+      // menggunakan kembali hasil sebelumnya tanpa melakukan komputasi ulang.
       const res = await fetch("/api/analysis/kmeans?force=true", {
         method: "POST",
       });

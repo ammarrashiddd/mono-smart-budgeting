@@ -31,12 +31,14 @@ function calculateWCSS(
 }
 
 // --- FUNGSI INTI: PIPELINE KOMPUTASI K-MEANS BULANAN ---
-async function runKmeansComputation(userId: string) {
+async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
   // 1. Ambil seluruh data pengeluaran (amount < 0)
-  const transactions = await prisma.transaction.findMany({
-    where: { userId, amount: { lt: 0 } },
-    orderBy: { date: "asc" },
-  });
+  const transactions =
+    transactionsParam ??
+    (await prisma.transaction.findMany({
+      where: { userId, amount: { lt: 0 } },
+      orderBy: { date: "asc" },
+    }));
 
   const currentTotalTx = transactions.length;
   // Batasan proteksi skripsi agar algoritma klasterisasi valid secara statistik
@@ -269,7 +271,43 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    const result = await runKmeansComputation(userId);
+    const transactions = await prisma.transaction.findMany({
+      where: { userId, amount: { lt: 0 } },
+      orderBy: { date: "asc" },
+    });
+
+    const currentTotalTx = transactions.length;
+    if (currentTotalTx < 5) {
+      throw new Error(
+        "Data transaksi pengeluaran belum mencukupi (Minimal harus 5 transaksi).",
+      );
+    }
+
+    const currentLastTxId = transactions[currentTotalTx - 1].id;
+
+    const cachedResult = await prisma.kmeansCache.findUnique({
+      where: { userId },
+    });
+
+    if (
+      cachedResult &&
+      cachedResult.totalTx === currentTotalTx &&
+      cachedResult.lastTxId === currentLastTxId
+    ) {
+      return NextResponse.json(
+        {
+          wcss: cachedResult.wcss,
+          k: cachedResult.optimalK,
+          points: cachedResult.points,
+          elbow: cachedResult.elbow,
+          source: "cache_unchanged",
+          noChanges: true,
+        },
+        { status: 200 },
+      );
+    }
+
+    const result = await runKmeansComputation(userId, transactions);
 
     return NextResponse.json({
       ...result,
