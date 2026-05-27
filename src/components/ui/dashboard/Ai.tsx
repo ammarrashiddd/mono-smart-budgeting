@@ -9,6 +9,7 @@ interface AiInsightData {
   kategoriTerbesar: string;
   kondisiKesehatan: string;
   aiSaranText: string;
+  reviewGoals: string;
 }
 
 interface GoalItem {
@@ -58,32 +59,6 @@ export default function Ai({ data, isLoading }: AiProps) {
       );
     };
   }, []);
-
-  // Helper function untuk generate goals review text
-  const generateGoalsReview = (): string => {
-    if (goals.length === 0) {
-      return "Anda belum memiliki tujuan keuangan yang ditetapkan. Mulai tentukan target keuangan Anda untuk mencapai kesuksesan finansial jangka panjang.";
-    }
-
-    const totalProgress = goals.reduce(
-      (sum, goal) => sum + (goal.currentAmount / goal.targetAmount) * 100,
-      0,
-    );
-    const avgProgress = Math.round(totalProgress / goals.length);
-    const completedGoals = goals.filter(
-      (g) => g.currentAmount >= g.targetAmount,
-    ).length;
-
-    if (avgProgress >= 100) {
-      return `Luar biasa! Anda telah mencapai ${completedGoals} dari ${goals.length} tujuan keuangan. Pertahankan momentum ini dengan menetapkan target baru yang lebih ambisius.`;
-    } else if (avgProgress >= 75) {
-      return `Anda berada di jalur yang sangat baik dengan rata-rata kemajuan ${avgProgress}%. Terus fokus untuk menyelesaikan sisa tujuan keuangan Anda dalam waktu dekat.`;
-    } else if (avgProgress >= 50) {
-      return `Kemajuan ${avgProgress}% terhadap tujuan keuangan Anda menunjukkan komitmen yang solid. Pertahankan konsistensi penghematan untuk mencapai target lebih cepat.`;
-    } else {
-      return `Anda memiliki ${goals.length} tujuan keuangan dengan kemajuan ${avgProgress}%. Mulai tingkatkan tabungan rutin untuk mempercepat pencapaian target Anda.`;
-    }
-  };
   // ========================================================
   // 1. KONDISI TAMPILAN SKELETON (SAAT PROSES HITUNG/FETCH BERJALAN)
   // ========================================================
@@ -140,7 +115,7 @@ export default function Ai({ data, isLoading }: AiProps) {
               </div>
 
               <p className="text-base md:text-lg font-medium text-primary/70 leading-relaxed">
-                {generateGoalsReview()}
+                {data.reviewGoals}
               </p>
             </div>
           </div>

@@ -61,6 +61,7 @@ model ClusterHistory {
   kategoriTerbesar String
   kondisiKesehatan String
   aiSaranText      String?
+  reviewGoals      String?
   calculatedAt     DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -88,6 +89,7 @@ model AiInsight {
   kategoriTerbesar String
   kondisiKesehatan String
   aiSaranText      String   @db.Text
+  reviewGoals      String?  @db.Text
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt // Tambahan opsional untuk memantau waktu update cache
 

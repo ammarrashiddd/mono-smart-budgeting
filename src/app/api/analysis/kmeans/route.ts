@@ -157,13 +157,6 @@ async function runKmeansComputation(userId: string) {
   const originalLastClusterId = finalClusters[lastTransactionIndex];
   const assignedCluster = clusterMapping[originalLastClusterId] ?? 0;
 
-  // Hubungkan ke helper penasihat Gemini AI
-  await saveFinancialAnalysisHistory({
-    userId,
-    optimalK,
-    assignedCluster,
-  });
-
   // Konstruksi muatan data bersih koordinat Recharts
   const clusteredData = transactions.map((tx, index) => {
     const originalClusterId = finalClusters[index];
@@ -180,7 +173,8 @@ async function runKmeansComputation(userId: string) {
 
   const cleanElbowData = elbowData.filter((item) => item.k <= 5);
 
-  // Lakukan Upsert Cache ke Database
+  // 🛠️ PERBAIKAN 1: PINDAHKAN UPSERT CACHE KE ATAS
+  // Selesaikan penulisan ke database tabel KmeansCache terlebih dahulu
   const upsertedCache = await prisma.kmeansCache.upsert({
     where: { userId },
     update: {
@@ -199,6 +193,20 @@ async function runKmeansComputation(userId: string) {
       elbow: cleanElbowData,
       totalTx: currentTotalTx,
       lastTxId: currentLastTxId,
+    },
+  });
+
+  // 🛠️ PERBAIKAN 2: SINKRONISASI PEMANGGILAN HELPER SEJARAH KEUANGAN & GEMINI
+  // Kirim data mentah matematika (rawKmeansData) agar siap dikonsumsi Aturan 50/30/20 di AI Service
+  await saveFinancialAnalysisHistory({
+    userId,
+    optimalK,
+    assignedCluster,
+    rawKmeansData: {
+      wcss: finalKmeans.wcss,
+      points: clusteredData,
+      elbow: cleanElbowData,
+      totalTx: currentTotalTx,
     },
   });
 
@@ -222,12 +230,10 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Ambil data cache statis dari database
     const cachedResult = await prisma.kmeansCache.findUnique({
       where: { userId },
     });
 
-    // Jika belum ada record cache, kembalikan 404 agar dashboard tahu harus bersiap melakukan inisiasi awal
     if (!cachedResult) {
       return NextResponse.json(
         { message: "Belum ada riwayat komputasi analisis ditemukan." },
@@ -263,7 +269,6 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Jalankan kalkulasi ulang matematika & perbarui rekomendasi Gemini AI secara paksa
     const result = await runKmeansComputation(userId);
 
     return NextResponse.json({

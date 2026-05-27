@@ -2,16 +2,24 @@ import { prisma } from "@/lib/prisma";
 import { calculateUserStats } from "@/lib/finances";
 import { generateFinancialInsight } from "@/app/services/aiService";
 
+// 1. PERBAIKAN PARAMETER INTERFACE: Menampung data mentah K-Means langsung dari API Route
 interface SaveHistoryParams {
   userId: string;
   optimalK: number;
   assignedCluster: number;
+  rawKmeansData: {
+    wcss: number;
+    points: any;
+    elbow: any;
+    totalTx: number;
+  };
 }
 
 export async function saveFinancialAnalysisHistory({
   userId,
   optimalK,
   assignedCluster,
+  rawKmeansData, // 🛠️ Tangkap objek data K-Means di sini
 }: SaveHistoryParams) {
   // 1. Ambil data kalkulasi terpusat murni dari utilitas finansial
   const { totalPemasukan, totalPengeluaran, sisaSaldo, ringkasanTransaksi } =
@@ -27,12 +35,20 @@ export async function saveFinancialAnalysisHistory({
     },
   });
 
-  // 2. Bungkus konteks data finansial secara utuh untuk Gemini AI
+  // 2. 🛠️ MERAKIT STRUKTUR KONTEKS BARU UNTUK GEMINI AI
+  // Menyelaraskan properti 'kmeansCacheData' dengan interface input aiService terbaru
   const dataKonteksFinansial = {
     totalPemasukan,
     totalPengeluaran,
     sisaSaldo,
     assignedCluster,
+    kmeansCacheData: {
+      optimalK,
+      wcss: rawKmeansData.wcss,
+      points: rawKmeansData.points,
+      elbow: rawKmeansData.elbow,
+      totalTx: rawKmeansData.totalTx,
+    },
     transaksiTerakhir: ringkasanTransaksi,
     targetKeuangan: userGoals.map((g) => ({
       title: g.title,
@@ -41,35 +57,34 @@ export async function saveFinancialAnalysisHistory({
     })),
   };
 
-  // 3. Ambil data teks dari AI Service
+  // 3. Ambil data teks hasil analisis terstruktur JSON dari AI Service
   const aiResult = await generateFinancialInsight(dataKonteksFinansial);
 
   // ========================================================
-  // 4. GABUNGKAN DATA DAN SIMPAN KE MASING-MASING TABEL
+  // 4. SIMPAN DATA KE MASING-MASING TABEL (TANPA STRING TEMPLATE)
   // ========================================================
 
-  // Satukan saran utama dan ulasan target keuangan menggunakan String Template (\n\n untuk baris baru)
-  const teksSaranGabungan = `${aiResult.aiSaranText}\n\n${aiResult.reviewGoals}`;
-
-  // A. Menggunakan UPSERT untuk AiInsight (Berperilaku seperti cache dashboard)
+  // A. Menggunakan UPSERT untuk AiInsight (Berperilaku seperti cache realtime dashboard)
   await prisma.aiInsight.upsert({
     where: { userId },
     update: {
       personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: teksSaranGabungan,
+      aiSaranText: aiResult.aiSaranText, // 🛠️ Disimpan bersih ke kolomnya sendiri
+      reviewGoals: aiResult.reviewGoals, // 🛠️ Disimpan bersih ke kolomnya sendiri
     },
     create: {
       userId,
       personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: teksSaranGabungan,
+      aiSaranText: aiResult.aiSaranText, // 🛠️ Disimpan bersih ke kolomnya sendiri
+      reviewGoals: aiResult.reviewGoals, // 🛠️ Disimpan bersih ke kolomnya sendiri
     },
   });
 
-  // B. 🔥 PERBAIKAN: Menampung hasil create ke variabel newHistory agar tidak undifined saat direturn
+  // B. Menampung hasil create ke variabel newHistory untuk track record log di database
   const newHistory = await prisma.clusterHistory.create({
     data: {
       userId,
@@ -81,7 +96,8 @@ export async function saveFinancialAnalysisHistory({
       sisaSaldo,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: teksSaranGabungan,
+      aiSaranText: aiResult.aiSaranText, // 🛠️ Disimpan bersih ke kolomnya sendiri
+      reviewGoals: aiResult.reviewGoals, // 🛠️ Disimpan bersih ke kolomnya sendiri
     },
   });
 
