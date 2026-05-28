@@ -2,22 +2,18 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// 1. PERBAIKAN INTERFACE: Menambahkan skema KmeansCache ke dalam konteks input AI
 interface FinancialInsightInput {
   totalPemasukan: number;
   totalPengeluaran: number;
   sisaSaldo: number;
   assignedCluster: number;
-
-  // Tambahan Data Mentah KmeansCache dari Database Prisma Anda
   kmeansCacheData: {
     optimalK: number;
     wcss: number;
-    points: any; // Objek/Array Json berisi sebaran koordinat
-    elbow: any; // Objek/Array Json grafik evaluasi WCSS
+    points: any;
+    elbow: any;
     totalTx: number;
   };
-
   transaksiTerakhir: Array<{
     deskripsi: string;
     nominal: number;
@@ -34,7 +30,6 @@ export async function generateFinancialInsight(
   dataKonteks: FinancialInsightInput,
 ) {
   try {
-    // 🛠️ HITUNG PERSENTASE RIIL UNTUK MEMUDAHKAN ANALISIS ATURAN 50/30/20 OLEH GEMINI
     const pemasukanPenyebut = dataKonteks.totalPemasukan || 1;
     const rasioPengeluaranTersisa = (
       (dataKonteks.totalPengeluaran / pemasukanPenyebut) *
@@ -45,12 +40,21 @@ export async function generateFinancialInsight(
       100
     ).toFixed(1);
 
+    // 🛠️ DETEKSI APAKAH ADA TARGET YANG MASIH KOSONG (0) UNTUK DIJADIKAN WARNING PROMPT
+    const hasZeroProgress = dataKonteks.targetKeuangan.some(
+      (g) => g.currentAmount === 0,
+    );
+    const zeroProgressWarning = hasZeroProgress
+      ? "\n PERINGATAN: Beberapa atau semua target keuangan memiliki currentAmount bernilai 0. Jangan asumsikan sisaSaldo saat ini sebagai dana yang sudah terkumpul untuk target tersebut! Nyatakan dengan jujur bahwa progres target tersebut masih belum dimulai atau masih Rp 0."
+      : "";
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI sekaligus Data Scientist yang jenius. Anda mahir menguji anggaran dengan metode Aturan Keuangan 50/30/20 dan mengaitkannya dengan hasil algoritma Unsupervised Learning K-Means.
       
       Analisis data keuangan pengguna dan log data statistik K-Means berikut ini: ${JSON.stringify(dataKonteks)}.
       Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, dan sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
+      ${zeroProgressWarning}
       
       Tugas Utama Anda:
       1. Berikan nama 'personaName' yang kreatif, unik, dan psikologis berdasarkan pola belanja mereka (contoh: "Si Penikmat Senja Impulsif", "Master Hemat Kuadrat", "Whale Spender").
@@ -62,7 +66,9 @@ export async function generateFinancialInsight(
          - Mengaitkan temuan tersebut dengan fakta bahwa mereka dikelompokkan ke "Klaster ${dataKonteks.assignedCluster}" dari total "K = ${dataKonteks.kmeansCacheData.optimalK}" kelompok yang terbentuk dari metode Elbow.
          - Jelaskan hubungan antara frekuensi transaksi mereka (${dataKonteks.kmeansCacheData.totalTx} kali transaksi) dengan pembengkakan alokasi keinginan (Wants). Berikan kritik tajam jika mereka berada di klaster yang tidak efisien.
 
-      5. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka. Hubungkan apakah kecenderungan perilaku mereka di kelompok Klaster ${dataKonteks.assignedCluster} ini realistis untuk mengejar pemenuhan target jika diproyeksikan dengan porsi ideal tabungan 20%.`,
+      5. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka. 
+         - Aturan Ketat: Jika 'currentAmount' pada data target adalah 0, Anda HARUS mengulas bahwa tabungan/dana untuk target tersebut memang masih kosong (Rp 0).
+         - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan perilaku mereka di kelompok Klaster ${dataKonteks.assignedCluster} dapat digunakan secara realistis mulai bulan depan untuk menyisihkan porsi ideal 20% agar target yang masih 0 tersebut bisa segera tercapai.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -112,7 +118,7 @@ export async function generateFinancialInsight(
             : "Waspada"
           : "Kritis",
       aiSaranText: `Berdasarkan pemodelan K-Means (K=${dataKonteks.kmeansCacheData?.optimalK || 3}), Anda berada pada Klaster ${clusterId} dengan intensitas ${totalMetrikTx} transaksi. Evaluasi mandiri alokasi anggaran Anda; pastikan mendekati rumus ideal 50% kebutuhan pokok, 30% keinginan, dan minimal 20% untuk tabungan/investasi.`,
-      reviewGoals: `Pencapaian target impian Anda (${daftarTarget}) dipengaruhi oleh kecenderungan belanja Anda di Klaster ${clusterId}. Lakukan efisiensi agar porsi tabungan mencapai 20% demi akselerasi target.`,
+      reviewGoals: `Target impian Anda (${daftarTarget}) saat ini belum memiliki alokasi dana khusus yang terkumpul. Manfaatkan kecenderungan positif Anda di Klaster ${clusterId} untuk mulai menyisihkan sisa saldo secara disiplin demi memicu progres finansial tersebut.`,
     };
   }
 }
