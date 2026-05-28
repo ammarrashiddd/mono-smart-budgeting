@@ -11,7 +11,11 @@ interface GoalItem {
   currentAmount: number;
 }
 
-export default function Goals() {
+interface GoalsProps {
+  onGoalChange?: () => void;
+}
+
+export default function Goals({ onGoalChange }: GoalsProps) {
   const [isManaging, setIsManaging] = useState(false);
   const [goals, setGoals] = useState<GoalItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +105,11 @@ export default function Goals() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (res.ok) fetchGoals();
+        if (res.ok) {
+          fetchGoals();
+          window.dispatchEvent(new Event("goal-updated"));
+          onGoalChange?.();
+        }
       } else {
         // Mode Tambah Baru (POST)
         const res = await fetch("/api/goals", {
@@ -109,7 +117,11 @@ export default function Goals() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (res.ok) fetchGoals();
+        if (res.ok) {
+          fetchGoals();
+          window.dispatchEvent(new Event("goal-updated"));
+          onGoalChange?.();
+        }
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -124,6 +136,8 @@ export default function Goals() {
         const res = await fetch(`/api/goals/${id}`, { method: "DELETE" });
         if (res.ok) {
           setGoals(goals.filter((g) => g.id !== id));
+          window.dispatchEvent(new Event("goal-updated"));
+          onGoalChange?.();
         }
       } catch (err) {
         console.error("Gagal menghapus data:", err);

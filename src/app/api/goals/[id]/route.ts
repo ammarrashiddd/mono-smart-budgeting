@@ -63,6 +63,11 @@ export async function DELETE(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // Hapus transaksi yang terhubung dengan target ini terlebih dahulu
+    await prisma.transaction.deleteMany({
+      where: { financialTargetId: id, userId: session.user.id },
+    });
+
     await prisma.financialTarget.delete({
       where: { id },
     });

@@ -64,6 +64,20 @@ export default function TransactionHistory({
     fetchTransactions();
   }, []);
 
+  useEffect(() => {
+    const handleGoalUpdate = () => {
+      console.log("Sinyal goal diterima! Merefresh data transaksi...");
+      fetchTransactions();
+      onTransactionChange?.();
+    };
+
+    window.addEventListener("goal-updated", handleGoalUpdate);
+
+    return () => {
+      window.removeEventListener("goal-updated", handleGoalUpdate);
+    };
+  }, [onTransactionChange]);
+
   // --- LOGIKA HITUNGAN PAGINATION ---
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;

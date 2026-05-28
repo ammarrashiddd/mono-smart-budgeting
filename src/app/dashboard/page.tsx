@@ -168,7 +168,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="px-4 md:px-12 mt-6 md:mt-10">
-        <Goals />
+        <Goals
+          onGoalChange={() => {
+            setStatsRefreshKey((prev) => prev + 1);
+            fetchAllAnalysisData(); // Otomatis cek ulang kondisi error jika ada target keuangan masuk/keluar baru
+          }}
+        />
       </div>
 
       <div className="px-4 md:px-12 mt-6 md:mt-10">

@@ -28,7 +28,7 @@ model Transaction {
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
   financialTargetId String? 
-  financialTarget   FinancialTarget? @relation(fields: [financialTargetId], references: [id], onDelete: SetNull)
+  financialTarget   FinancialTarget? @relation(fields: [financialTargetId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
