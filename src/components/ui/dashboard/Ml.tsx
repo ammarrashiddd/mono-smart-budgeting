@@ -50,6 +50,21 @@ export default function Ml({ data, isLoading }: MlProps) {
           </div>
         </div>
 
+        {/* Parameter Analisis K */}
+        <div className="my-6">
+          <div>
+            <p className="text-[9px] font-bold text-secondary/40 uppercase tracking-wider mb-0.5">
+              Optimized Cluster
+            </p>
+            <p className="text-lg font-bold text-secondary tracking-tight">
+              K = {data.k}{" "}
+              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-1">
+                Optimal
+              </span>
+            </p>
+          </div>
+        </div>
+
         {/* Content Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* BOX 1: Scatter Plot K-Means */}
@@ -78,40 +93,6 @@ export default function Ml({ data, isLoading }: MlProps) {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* BOX 3: Parameter Analisis Statistik Bawah */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-secondary/5 mt-6">
-          <div>
-            <p className="text-[9px] font-bold text-secondary/40 uppercase tracking-wider mb-0.5">
-              Optimized Cluster
-            </p>
-            <p className="text-lg font-bold text-secondary tracking-tight">
-              K = {data.k}{" "}
-              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-1">
-                Optimal
-              </span>
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[9px] font-bold text-secondary/40 uppercase tracking-wider mb-0.5">
-              Current In-Cluster Inertia (WCSS)
-            </p>
-            <p className="text-lg font-bold text-secondary/80 tracking-tight">
-              {data.wcss
-                ? new Intl.NumberFormat("id-ID").format(Number(data.wcss))
-                : 0}
-            </p>
-          </div>
-
-          <div className="md:col-span-1">
-            <p className="text-[10px] text-secondary/50 leading-relaxed font-medium">
-              Metode *Elbow* di atas menentukan belokan sudut tertajam (*elbow
-              point*) untuk mengunci jumlah K kelompok terbaik secara otomatis,
-              menyeimbangkan efisiensi varians klaster (WCSS).
-            </p>
           </div>
         </div>
       </div>
