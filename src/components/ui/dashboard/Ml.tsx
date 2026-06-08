@@ -65,34 +65,13 @@ export default function Ml({ data, isLoading }: MlProps) {
           </div>
         </div>
 
-        {/* Content Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* BOX 1: Scatter Plot K-Means */}
-          <div className="lg:col-span-2 flex flex-col space-y-2">
-            <span className="text-[10px] font-bold text-secondary/40 uppercase tracking-wider">
-              Scatter Plot Pembagian Klaster
-            </span>
-            <div className="h-64 bg-secondary/1 rounded-lg border border-secondary/15 p-4 animate-in fade-in duration-300">
-              <ScatterplotClaster data={data} COLORS={COLORS} />
-            </div>
-          </div>
-
-          {/* BOX 2: Kurva Metode Elbow */}
-          <div className="flex flex-col space-y-2">
-            <span className="text-[10px] font-bold text-secondary/40 uppercase tracking-wider">
-              Kurva Metode Elbow
-            </span>
-            <div className="h-64 bg-secondary/1 rounded-lg border border-secondary/15 p-4 animate-in fade-in duration-300 flex items-center justify-center">
-              {data.elbow && data.elbow.length > 0 ? (
-                <KurvaElbow data={data} />
-              ) : (
-                <div className="text-center p-4">
-                  <p className="text-xs font-semibold text-secondary/40">
-                    Data koordinat grafik Elbow belum tersedia.
-                  </p>
-                </div>
-              )}
-            </div>
+        {/* BOX : Scatter Plot K-Means */}
+        <div className="w-full">
+          <span className="text-[10px] font-bold text-secondary/40 uppercase tracking-wider">
+            Scatter Plot Pembagian Klaster
+          </span>
+          <div className="h-64 bg-secondary/1 rounded-lg border border-secondary/15 p-4 animate-in fade-in duration-300">
+            <ScatterplotClaster data={data} COLORS={COLORS} />
           </div>
         </div>
       </div>
