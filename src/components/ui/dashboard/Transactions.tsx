@@ -7,10 +7,10 @@ import {
   Trash,
   CaretLeft,
   CaretRight,
+  Funnel,
 } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
 
-// Menambahkan interface yang dibutuhkan parameter handleSaveBulk
 interface BulkInputItem {
   description: string;
   amount: string;
@@ -24,7 +24,7 @@ interface TransactionItem {
   description: string;
   amount: number;
   date: string;
-  financialTargetId?: string | null; // Tambahkan ini agar aman saat dikirim ke form edit
+  financialTargetId?: string | null;
 }
 
 interface TransactionsProps {
@@ -38,7 +38,18 @@ export default function TransactionHistory({
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // State untuk mengontrol halaman pagination
+  // 🛠️ STATE FILTER & SORTING
+  const [timeFilter, setTimeFilter] = useState<"bulan-ini" | "semua">(
+    "bulan-ini",
+  );
+  const [typeFilter, setTypeFilter] = useState<
+    "semua" | "pemasukan" | "pengeluaran"
+  >("semua"); // 👈 State Baru
+  const [sortFilter, setSortFilter] = useState<
+    "default" | "terendah" | "tertinggi"
+  >("default");
+
+  // State Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -66,33 +77,69 @@ export default function TransactionHistory({
 
   useEffect(() => {
     const handleGoalUpdate = () => {
-      console.log("Sinyal goal diterima! Merefresh data transaksi...");
       fetchTransactions();
       onTransactionChange?.();
     };
-
     window.addEventListener("goal-updated", handleGoalUpdate);
-
-    return () => {
-      window.removeEventListener("goal-updated", handleGoalUpdate);
-    };
+    return () => window.removeEventListener("goal-updated", handleGoalUpdate);
   }, [onTransactionChange]);
 
+  // ========================================================
+  // 🛠️ LOGIKA FILTER DAN SORTING LENGKAP
+  // ========================================================
+  const filteredAndSortedTransactions = transactions
+    .filter((tx) => {
+      // 1. Filter Berdasarkan Waktu
+      if (timeFilter === "bulan-ini") {
+        const txDate = new Date(tx.date);
+        const now = new Date();
+        if (
+          txDate.getMonth() !== now.getMonth() ||
+          txDate.getFullYear() !== now.getFullYear()
+        ) {
+          return false;
+        }
+      }
+
+      // 2. Filter Berdasarkan Jenis (Pemasukan / Pengeluaran) 👈 Logika Baru
+      if (typeFilter === "pemasukan" && tx.amount < 0) return false;
+      if (typeFilter === "pengeluaran" && tx.amount >= 0) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      // 3. Sorting Berdasarkan Nilai Mutlak (Math.abs)
+      if (sortFilter === "terendah") {
+        return Math.abs(a.amount) - Math.abs(b.amount);
+      }
+      if (sortFilter === "tertinggi") {
+        return Math.abs(b.amount) - Math.abs(a.amount);
+      }
+      return 0; // default (terkini dari API)
+    });
+
   // --- LOGIKA HITUNGAN PAGINATION ---
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const totalPages = Math.ceil(
+    filteredAndSortedTransactions.length / itemsPerPage,
+  );
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentTransactions = transactions.slice(
+  const currentTransactions = filteredAndSortedTransactions.slice(
     indexOfFirstItem,
     indexOfLastItem,
   );
+
+  // Reset ke halaman 1 jika filter berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [timeFilter, typeFilter, sortFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
     }
-  }, [transactions, totalPages, currentPage]);
-  // ----------------------------------
+  }, [filteredAndSortedTransactions, totalPages, currentPage]);
+  // --------------------------------------------------------
 
   const openAddModal = () => {
     setEditingTx(null);
@@ -100,11 +147,7 @@ export default function TransactionHistory({
   };
 
   const openEditModal = (item: TransactionItem) => {
-    if (!item.id) {
-      console.error("Item edit tidak memiliki id", item);
-      return;
-    }
-    // Mapping format data agar sesuai dengan apa yang dituntut TransactionsFormProps.editingTx
+    if (!item.id) return;
     setEditingTx({
       id: item.id,
       description: item.description,
@@ -123,11 +166,7 @@ export default function TransactionHistory({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(items),
         });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.message || "Gagal memperbarui transaksi");
-        }
+        if (!res.ok) throw new Error("Gagal memperbarui transaksi");
         alert("Transaksi berhasil diperbarui!");
       } else {
         const res = await fetch("/api/transactions", {
@@ -135,22 +174,15 @@ export default function TransactionHistory({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(items),
         });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.message || "Gagal menyimpan data transaksi");
-        }
+        if (!res.ok) throw new Error("Gagal menyimpan data transaksi");
         alert(`Berhasil menyimpan ${items.length} transaksi!`);
       }
 
-      // 🔥 PERBAIKAN UTAMA: Ambil data terbaru dari database agar UI langsung ter-update otomatis
       await fetchTransactions();
-
-      // Beritahu komponen parent (Dashboard) dan widget target keuangan (Goals)
       onTransactionChange?.();
       window.dispatchEvent(new Event("transaction-updated"));
-    } catch (error: any) {
-      console.error("Gagal menyimpan transaksi:", error);
+    } catch (error) {
+      console.error(error);
       throw error;
     }
   };
@@ -161,26 +193,15 @@ export default function TransactionHistory({
         const res = await fetch(`/api/transactions/${id}`, {
           method: "DELETE",
         });
-
         if (res.ok) {
           setTransactions(transactions.filter((t) => t.id !== id));
           onTransactionChange?.();
           window.dispatchEvent(new Event("transaction-updated"));
         } else {
-          const contentType = res.headers.get("content-type");
-          let errorMessage = "Gagal menghapus transaksi";
-
-          if (contentType && contentType.includes("application/json")) {
-            const errData = await res.json();
-            errorMessage = errData.message || errorMessage;
-          } else {
-            errorMessage = `Server merespons dengan status ${res.status}`;
-          }
-          throw new Error(errorMessage);
+          throw new Error("Gagal menghapus transaksi");
         }
       } catch (err: any) {
-        console.error("Gagal menghapus transaksi:", err);
-        alert(`Terjadi kesalahan: ${err.message}`);
+        alert(err.message);
       }
     }
   };
@@ -205,7 +226,8 @@ export default function TransactionHistory({
   return (
     <main>
       <div className="bg-white rounded-lg p-6 md:p-10 border border-secondary/5 shadow-xl shadow-secondary/5">
-        <div className="flex items-center justify-between mb-8">
+        {/* HEADER UTAMA */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <h3 className="text-xs md:text-base font-black uppercase text-secondary">
               Transaksi
@@ -219,18 +241,60 @@ export default function TransactionHistory({
               </button>
             )}
           </div>
+
           <button
             onClick={() => setIsManaging(!isManaging)}
-            className={`text-${isManaging ? "red-500" : "tertiary"} text-xs md:text-base font-black uppercase hover:underline transition-all whitespace-nowrap cursor-pointer`}
+            className={`text-${isManaging ? "red-500" : "tertiary"} text-xs md:text-sm font-black uppercase hover:underline transition-all whitespace-nowrap text-left cursor-pointer`}
           >
             {isManaging ? "Selesai" : "Kelola Transaksi"}
           </button>
         </div>
 
+        {/* 🛠️ BARIS PANEL FILTER (UPDATE: SEKARANG ADA 3 SELECT DROPDOWN) */}
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-6 p-3 bg-secondary/2 rounded-xl border border-secondary/5">
+          <div className="flex items-center gap-1.5 text-secondary/40 text-[11px] font-bold uppercase tracking-wider pl-1">
+            <Funnel size={14} weight="bold" />
+            <span>Filter:</span>
+          </div>
+
+          {/* Dropdown 1: Rentang Waktu */}
+          <select
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value as any)}
+            className="bg-white text-secondary text-xs font-bold py-1.5 px-2.5 rounded-md border border-secondary/10 shadow-sm focus:outline-none focus:border-tertiary cursor-pointer"
+          >
+            <option value="bulan-ini">Bulan Ini</option>
+            <option value="semua">Semua Riwayat</option>
+          </select>
+
+          {/* Dropdown 2: Jenis Transaksi (BARU) */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as any)}
+            className="bg-white text-secondary text-xs font-bold py-1.5 px-2.5 rounded-md border border-secondary/10 shadow-sm focus:outline-none focus:border-tertiary cursor-pointer"
+          >
+            <option value="semua">Semua Jenis</option>
+            <option value="pemasukan">Pemasukan</option>
+            <option value="pengeluaran">Pengeluaran</option>
+          </select>
+
+          {/* Dropdown 3: Urutan Nominal */}
+          <select
+            value={sortFilter}
+            onChange={(e) => setSortFilter(e.target.value as any)}
+            className="bg-white text-secondary text-xs font-bold py-1.5 px-2.5 rounded-md border border-secondary/10 shadow-sm focus:outline-none focus:border-tertiary cursor-pointer"
+          >
+            <option value="default">Urutan: Terbaru</option>
+            <option value="terendah">Nominal: Terendah</option>
+            <option value="tertinggi">Nominal: Tertinggi</option>
+          </select>
+        </div>
+
+        {/* DAFTAR TRANSAKSI */}
         <div className="space-y-4">
-          {transactions.length === 0 ? (
+          {filteredAndSortedTransactions.length === 0 ? (
             <p className="text-center text-xs text-gray-400 py-6 font-medium">
-              Belum ada riwayat transaksi.
+              Tidak ada data transaksi yang cocok dengan filter.
             </p>
           ) : (
             currentTransactions.map((item) => (
@@ -288,7 +352,7 @@ export default function TransactionHistory({
           )}
         </div>
 
-        {/* --- TOMBOL NAVIGASI PAGINATION --- */}
+        {/* PAGINATION PANEL */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-8 pt-4 border-t border-secondary/5 text-xs font-bold text-secondary/60">
             <p>
@@ -317,7 +381,7 @@ export default function TransactionHistory({
         )}
       </div>
 
-      {/* FORM MODAL INPUT TRANSAKSI */}
+      {/* FORM MODAL */}
       {isModalOpen && (
         <TransactionsForm
           isModalOpen={isModalOpen}
@@ -329,7 +393,7 @@ export default function TransactionHistory({
                   description: editingTx.description,
                   amount: editingTx.amount,
                   date: editingTx.date,
-                  goalId: editingTx.financialTargetId || null, // mapping agar match dengan interface TransactionsFormProps
+                  goalId: editingTx.financialTargetId || null,
                 }
               : null
           }
