@@ -159,7 +159,7 @@ export default function DashboardPage() {
 
       <header className="px-4 md:px-12 mt-6 md:mt-10">
         <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tighter text-secondary leading-tight capitalize">
-          Hello {username}, <br className="block sm:hidden" /> Welcome Back!
+          Hello {username}
         </h3>
       </header>
 

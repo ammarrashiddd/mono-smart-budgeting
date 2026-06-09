@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import TrenSisaSaldo from "@/components/grafik/TrenSisaSaldo";
 import AlokasiPengeluaran from "@/components/grafik/AlokasiPengeluaran";
 import ChartSkeleton from "@/components/skeleton/ChartSkeleton";
+import TrenPengeluaranPemasukan from "@/components/grafik/TrenPengeluaranPemasukan";
 
 interface ChartProps {
   data: any;
@@ -30,27 +30,27 @@ export default function Charts({ data, isLoading }: ChartProps) {
   if (!data) return null;
 
   const categoryData = data.categoryData || [];
-  const balanceTrendData = data.balanceTrendData || [];
+  const chartData = data.chartData || [];
   const isMobile = windowWidth !== null && windowWidth < 768;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full text-[#1c1c1c]">
-      {/* GRAFIK 1: TREN SALDO KUMULATIF (MINIMALIST BRANDING) */}
+      {/* GRAFIK 1: TREN PEMASUKAN & PENGELUARAN (MINIMALIST BRANDING) */}
       <div className="bg-white p-5 md:p-6 rounded-xl border border-primary w-full flex flex-col justify-between">
-        <div className="mb-8">
+        <div className="mb-2 md:mb-8">
           <h3 className="text-lg font-black text-secondary">
-            Tren Sisa Saldo Kumulatif
+            Tren Pemasukan & Pengeluaran
           </h3>
         </div>
 
         <div>
-          <TrenSisaSaldo balanceTrendData={balanceTrendData} />
+          <TrenPengeluaranPemasukan cashflowData={chartData} />
         </div>
       </div>
 
       {/* GRAFIK 2: ALOKASI PENGELUARAN (15 WARNA MINIMALIS) */}
       <div className="bg-white p-5 md:p-6 rounded-xl border border-primary w-full flex flex-col justify-between">
-        <div className="mb-8">
+        <div className="mb-2 md:mb-8">
           <h3 className="text-lg font-black text-secondary">
             Alokasi Pengeluaran
           </h3>

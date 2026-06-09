@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Cell,
   Legend,
@@ -7,7 +8,6 @@ import {
   Tooltip,
 } from "recharts";
 
-// Custom Tooltip Minimalis untuk Distribusi Kategori
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -35,22 +35,22 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 interface CategoryData {
   name: string;
   value: number;
+  isCurrentMonth: boolean;
 }
 
-// palet warna
 const MINIMALIST_COLORS = [
-  "#5D5FEF", // Indigo Soft
-  "#339AF0", // Blue Soft
-  "#20C997", // Teal Soft
-  "#FAB005", // Amber Soft (Cukup gelap agar kontras di putih)
-  "#FF6B6B", // Red Soft
-  "#F06595", // Pink Soft
-  "#845EF7", // Purple Soft
-  "#22B8CF", // Cyan Soft
-  "#51CF66", // Green Soft
-  "#FF922B", // Orange Soft
-  "#AE3EC9", // Fuchsia Soft
-  "#868E96", // Slate Soft (Pem優 pemisah netral)
+  "#5D5FEF",
+  "#339AF0",
+  "#20C997",
+  "#FAB005",
+  "#FF6B6B",
+  "#F06595",
+  "#845EF7",
+  "#22B8CF",
+  "#51CF66",
+  "#FF922B",
+  "#AE3EC9",
+  "#868E96",
 ];
 
 export default function AlokasiPengeluaran({
@@ -60,49 +60,83 @@ export default function AlokasiPengeluaran({
   categoryData: CategoryData[];
   isMobile: boolean;
 }) {
+  const [filter, setFilter] = useState<"all" | "month">("month");
+
+  // FIX LOGIKA FILTER: Memisahkan secara mutlak agar tidak ada duplikasi kategori
+  const filteredData = categoryData.filter((item) => {
+    if (filter === "month") {
+      return item.isCurrentMonth === true;
+    } else {
+      return item.isCurrentMonth === false; // "all" mengambil rekap total tahunan dari backend
+    }
+  });
+
   return (
-    <main className="w-full h-full">
-      <div className="w-full h-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={categoryData}
-              cx="50%"
-              cy={isMobile ? "42%" : "45%"}
-              innerRadius={isMobile ? 48 : 60}
-              outerRadius={isMobile ? 64 : 78}
-              paddingAngle={3} // Celah minimalis antar segmen
-              dataKey="value"
-            >
-              {categoryData.map((entry: any, index: number) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={MINIMALIST_COLORS[index % MINIMALIST_COLORS.length]} // Loop 15 warna minimalis
-                  stroke="#white"
-                  strokeWidth={1.5}
-                />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomPieTooltip />} />
-            <Legend
-              layout="horizontal"
-              verticalAlign="bottom"
-              align="center"
-              iconSize={6}
-              iconType="circle"
-              wrapperStyle={{
-                fontSize: "10px",
-                bottom: -5,
-                left: 0,
-                right: 0,
-                maxHeight: isMobile ? "45px" : "55px",
-                overflowY: "auto",
-                paddingTop: "2px",
-                color: "#1c1c1c" /* --color2 */,
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+    <main className="w-full h-full flex flex-col">
+      {/* Header & Filter Control */}
+      <div className="flex items-center justify-between w-full mb-1">
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as "all" | "month")}
+          className="bg-transparent text-[11px] font-semibold text-[#1c1c1c] border border-[#ebebeb] rounded-md py-1 px-2 cursor-pointer focus:outline-none"
+        >
+          <option value="month">Bulan Ini</option>
+          <option value="all">Semua Riwayat</option>
+        </select>
+      </div>
+
+      {/* Container Grafik */}
+      <div className="w-full flex-1 min-h-52">
+        {filteredData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={filteredData}
+                cx="50%"
+                // Menaikkan grafik ke atas (dari 42% ke 35%) agar ruang bawah lebih luas
+                cy={isMobile ? "35%" : "45%"}
+                // Memperkecil sedikit radius lingkaran khusus mobile
+                innerRadius={isMobile ? 38 : 60}
+                outerRadius={isMobile ? 52 : 78}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {filteredData.map((entry: any, index: number) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    // Menggunakan indeks dari filteredData yang bersih dari duplikasi
+                    fill={MINIMALIST_COLORS[index % MINIMALIST_COLORS.length]}
+                    stroke="#ffffff"
+                    strokeWidth={1.5}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomPieTooltip />} />
+              <Legend
+                layout="horizontal"
+                verticalAlign="bottom"
+                align="center"
+                iconSize={6}
+                iconType="circle"
+                wrapperStyle={{
+                  fontSize: "9px", // Sedikit diperkecil dari 10px ke 9px untuk mobile
+                  position: "absolute",
+                  bottom: 0, // Jangan gunakan minus agar tidak offside keluar container
+                  left: 0,
+                  right: 0,
+                  maxHeight: isMobile ? "50px" : "70px", // Batasi tinggi maksimal legend
+                  overflowY: "auto", // Aktifkan scrollbar vertikal jika kategori terlalu banyak
+                  paddingTop: "4px",
+                  lineHeight: "14px",
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-xs opacity-40">
+            Tidak ada data pengeluaran
+          </div>
+        )}
       </div>
     </main>
   );
