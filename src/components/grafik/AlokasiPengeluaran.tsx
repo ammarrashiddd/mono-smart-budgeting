@@ -94,10 +94,10 @@ export default function AlokasiPengeluaran({
                 data={filteredData}
                 cx="50%"
                 // Menaikkan grafik ke atas (dari 42% ke 35%) agar ruang bawah lebih luas
-                cy={isMobile ? "35%" : "45%"}
+                cy={isMobile ? "40%" : "45%"}
                 // Memperkecil sedikit radius lingkaran khusus mobile
-                innerRadius={isMobile ? 38 : 60}
-                outerRadius={isMobile ? 52 : 78}
+                innerRadius="60%"
+                outerRadius={isMobile ? "75%" : "80%"}
                 paddingAngle={3}
                 dataKey="value"
               >

@@ -56,7 +56,7 @@ export default function Charts({ data, isLoading }: ChartProps) {
           </h3>
         </div>
 
-        <div className="w-full h-56 md:h-64 flex flex-col justify-center items-center text-[10px] font-medium">
+        <div className="w-full h-70 flex flex-col justify-center items-center text-[10px] font-medium">
           {categoryData.length === 0 ? (
             <p className="text-xs text-secondary italic py-10">
               Belum ada data pengeluaran

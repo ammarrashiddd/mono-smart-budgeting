@@ -70,7 +70,7 @@ export default function Ml({ data, isLoading }: MlProps) {
           <span className="text-[10px] font-bold text-secondary/40 uppercase tracking-wider">
             Scatter Plot Pembagian Klaster
           </span>
-          <div className="h-64 bg-secondary/1 rounded-lg border border-secondary/15 p-4 animate-in fade-in duration-300">
+          <div className="h-full bg-secondary/1 rounded-lg border border-secondary/15 py-3 animate-in fade-in duration-300">
             <ScatterplotClaster data={data} COLORS={COLORS} />
           </div>
         </div>

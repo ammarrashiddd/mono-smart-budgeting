@@ -71,8 +71,8 @@ export default function ScatterplotClaster({ data, COLORS }: MlProps) {
   };
 
   return (
-    <main className="w-full h-full">
-      <div className="w-full h-full">
+    <main className="w-full overflow-x-auto select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="h-56 md:h-64 text-[10px] font-medium min-w-187.5 md:min-w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -81,16 +81,29 @@ export default function ScatterplotClaster({ data, COLORS }: MlProps) {
               dataKey="x"
               name="Tanggal"
               domain={[1, 31]}
+              ticks={Array.from({ length: 31 }, (_, i) => i + 1)}
               tick={{ fontSize: 10, fontWeight: "bold" }}
+              interval={0}
               stroke="#A3A3A3"
             />
             <YAxis
               type="number"
               dataKey="y"
               name="Nominal"
-              tickFormatter={(val) => `${val / 1000}k`}
               tick={{ fontSize: 10, fontWeight: "bold" }}
               stroke="#A3A3A3"
+              tickFormatter={(value) => {
+                if (value >= 1000000) {
+                  const formatted = (value / 1000000)
+                    .toFixed(1)
+                    .replace(".0", "");
+                  return `Rp ${formatted}jt`;
+                } else if (value >= 1000) {
+                  const formatted = (value / 1000).toFixed(1).replace(".0", "");
+                  return `Rp ${formatted}rb`;
+                }
+                return `Rp ${value.toLocaleString("id-ID")}`;
+              }}
             />
             <Tooltip content={<ScatterTooltip />} />
             <Scatter name="Transaksi" data={data?.points}>
