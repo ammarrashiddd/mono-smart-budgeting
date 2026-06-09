@@ -354,9 +354,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Jika jumlah transaksi di bulan ini masih sama dengan total transaksi di cache,
-    // lewati komputasi ulang untuk menghemat memori (idempotent)
-    if (cachedResult && cachedResult.totalTx === currentTotalTx) {
+    const forceRecompute = searchParams.get("force")?.toLowerCase() === "true";
+
+    // Jika jumlah transaksi pengeluaran tetap sama dan tidak ada flag force, kembalikan cache.
+    if (
+      cachedResult &&
+      cachedResult.totalTx === currentTotalTx &&
+      !forceRecompute
+    ) {
       return NextResponse.json(
         {
           wcss: cachedResult.wcss,
@@ -375,7 +380,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...result,
-      source: "fresh_computation",
+      source: forceRecompute ? "forced_recomputation" : "fresh_computation",
     });
   } catch (error: any) {
     console.error("POST K-Means Computation Error:", error);
