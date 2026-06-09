@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { calculateUserStats } from "@/lib/finances";
 import { generateFinancialInsight } from "@/app/services/aiService";
 
-// 1. PERBAIKAN PARAMETER INTERFACE: Menampung data mentah K-Means langsung dari API Route
+// 1. PERBAIKAN INTERFACE: Menampung properti bulan dan tahun dari API Route
 interface SaveHistoryParams {
   userId: string;
   optimalK: number;
@@ -12,6 +12,8 @@ interface SaveHistoryParams {
     points: any;
     elbow: any;
     totalTx: number;
+    month: number; // 🆕 Tangkap info bulan berjalan
+    year: number; // 🆕 Tangkap info tahun berjalan
   };
 }
 
@@ -19,11 +21,15 @@ export async function saveFinancialAnalysisHistory({
   userId,
   optimalK,
   assignedCluster,
-  rawKmeansData, // 🛠️ Tangkap objek data K-Means di sini
+  rawKmeansData,
 }: SaveHistoryParams) {
-  // 1. Ambil data kalkulasi terpusat murni dari utilitas finansial
+  // Ekstrak waktu bulan dan tahun dari payload K-Means
+  const { month, year } = rawKmeansData;
+
+  // 1. Ambil data kalkulasi murni finansial HANYA pada bulan berjalan
+  // ⚠️ Pastikan fungsi calculateUserStats di 'src/lib/finances.ts' sudah diubah agar menerima parameter (userId, month, year)
   const { totalPemasukan, totalPengeluaran, sisaSaldo, ringkasanTransaksi } =
-    await calculateUserStats(userId);
+    await calculateUserStats(userId, month, year);
 
   // 1.5. AMBIL DATA TARGET KEUANGAN (GOALS) AKTIF USER DARI DATABASE
   const userGoals = await prisma.financialTarget.findMany({
@@ -35,8 +41,9 @@ export async function saveFinancialAnalysisHistory({
     },
   });
 
-  // 2. 🛠️ MERAKIT STRUKTUR KONTEKS BARU UNTUK GEMINI AI
-  // Menyelaraskan properti 'kmeansCacheData' dengan interface input aiService terbaru
+  // 2. MERAKIT STRUKTUR KONTEKS BARU UNTUK GEMINI AI
+  const pengeluaranTerakhir = ringkasanTransaksi.filter((tx) => tx.nominal < 0);
+
   const dataKonteksFinansial = {
     totalPemasukan,
     totalPengeluaran,
@@ -48,8 +55,10 @@ export async function saveFinancialAnalysisHistory({
       points: rawKmeansData.points,
       elbow: rawKmeansData.elbow,
       totalTx: rawKmeansData.totalTx,
+      month, // 🆕 Teruskan konteks waktu agar AI tahu bulan apa yang sedang dinilai
+      year,
     },
-    transaksiTerakhir: ringkasanTransaksi,
+    transaksiTerakhir: pengeluaranTerakhir,
     targetKeuangan: userGoals.map((g) => ({
       title: g.title,
       targetAmount: Number(g.targetAmount),
@@ -61,30 +70,40 @@ export async function saveFinancialAnalysisHistory({
   const aiResult = await generateFinancialInsight(dataKonteksFinansial);
 
   // ========================================================
-  // 4. SIMPAN DATA KE MASING-MASING TABEL (TANPA STRING TEMPLATE)
+  // 4. SIMPAN DATA KE MASING-MASING TABEL (ISOLASI BULANAN)
   // ========================================================
 
-  // A. Menggunakan UPSERT untuk AiInsight (Berperilaku seperti cache realtime dashboard)
+  // A. Menggunakan UPSERT untuk AiInsight dengan target kombinasi Unik Bulanan
   await prisma.aiInsight.upsert({
-    where: { userId },
+    where: {
+      userId_month_year: {
+        userId,
+        month,
+        year,
+      },
+    },
     update: {
       personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: aiResult.aiSaranText, // 🛠️ Disimpan bersih ke kolomnya sendiri
-      reviewGoals: aiResult.reviewGoals, // 🛠️ Disimpan bersih ke kolomnya sendiri
+      aiSaranText: aiResult.aiSaranText,
+      reviewGoals: aiResult.reviewGoals,
     },
     create: {
       userId,
+      month, // 🆕 Wajib diisi untuk mapping record baru di DB
+      year, // 🆕 Wajib diisi untuk mapping record baru di DB
       personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: aiResult.aiSaranText, // 🛠️ Disimpan bersih ke kolomnya sendiri
-      reviewGoals: aiResult.reviewGoals, // 🛠️ Disimpan bersih ke kolomnya sendiri
+      aiSaranText: aiResult.aiSaranText,
+      reviewGoals: aiResult.reviewGoals,
     },
   });
 
-  // B. Menampung hasil create ke variabel newHistory untuk track record log di database
+  // B. Menampung hasil create ke tabel log riwayat klasterisasi (ClusterHistory)
+  // 💡 Note: Jika model ClusterHistory di skripsi Anda ingin mencatat bulan & tahun secara eksplisit,
+  // Anda bisa menambahkan kolom 'month' dan 'year' di skemanya, lalu isi di bawah ini.
   const newHistory = await prisma.clusterHistory.create({
     data: {
       userId,
@@ -96,8 +115,8 @@ export async function saveFinancialAnalysisHistory({
       sisaSaldo,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
-      aiSaranText: aiResult.aiSaranText, // 🛠️ Disimpan bersih ke kolomnya sendiri
-      reviewGoals: aiResult.reviewGoals, // 🛠️ Disimpan bersih ke kolomnya sendiri
+      aiSaranText: aiResult.aiSaranText,
+      reviewGoals: aiResult.reviewGoals,
     },
   });
 

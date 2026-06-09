@@ -30,6 +30,11 @@ export async function generateFinancialInsight(
   dataKonteks: FinancialInsightInput,
 ) {
   try {
+    // Memastikan data goals masuk ke konsol terminal backend saat eksekusi
+    console.log("=== DEBUG GOALS DITERIMA AI SERVICE ===");
+    console.log(JSON.stringify(dataKonteks.targetKeuangan, null, 2));
+    console.log("=======================================");
+
     const pemasukanPenyebut = dataKonteks.totalPemasukan || 1;
     const rasioPengeluaranTersisa = (
       (dataKonteks.totalPengeluaran / pemasukanPenyebut) *
@@ -40,35 +45,61 @@ export async function generateFinancialInsight(
       100
     ).toFixed(1);
 
-    // 🛠️ DETEKSI APAKAH ADA TARGET YANG MASIH KOSONG (0) UNTUK DIJADIKAN WARNING PROMPT
+    // VALIDASI DAN FORMATTING TARGET KEUANGAN
+    const anyGoalsExist =
+      dataKonteks.targetKeuangan && dataKonteks.targetKeuangan.length > 0;
+
+    // Menyusun string daftar target secara eksplisit untuk disodorkan ke prompt teks Gemini
+    const teksDaftarTarget = anyGoalsExist
+      ? dataKonteks.targetKeuangan
+          .map(
+            (g) =>
+              `- ${g.title}: Target Rp${g.targetAmount.toLocaleString("id-ID")}, Terkumpul Rp${g.currentAmount.toLocaleString("id-ID")}`,
+          )
+          .join("\n")
+      : "- Tidak ada target keuangan aktif saat ini.";
+
     const hasZeroProgress = dataKonteks.targetKeuangan.some(
       (g) => g.currentAmount === 0,
     );
     const zeroProgressWarning = hasZeroProgress
-      ? "\n PERINGATAN: Beberapa atau semua target keuangan memiliki currentAmount bernilai 0. Jangan asumsikan sisaSaldo saat ini sebagai dana yang sudah terkumpul untuk target tersebut! Nyatakan dengan jujur bahwa progres target tersebut masih belum dimulai atau masih Rp 0."
+      ? "\nPERINGATAN KETAT: Beberapa atau semua target keuangan di atas memiliki nominal terkumpul (currentAmount) bernilai 0. Jangan asumsikan sisa saldo saat ini sebagai dana target tersebut! Nyatakan secara spesifik target mana saja yang progresnya masih Rp 0 atau belum dimulai."
       : "";
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI sekaligus Data Scientist yang jenius. Anda mahir menguji anggaran dengan metode Aturan Keuangan 50/30/20 dan mengaitkannya dengan hasil algoritma Unsupervised Learning K-Means.
+      contents: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI sekaligus Data Scientist yang jenius. Anda mahir menguji anggaran bulanan dan mengaitkannya dengan hasil algoritma K-Means untuk evaluasi saat ini juga.
       
-      Analisis data keuangan pengguna dan log data statistik K-Means berikut ini: ${JSON.stringify(dataKonteks)}.
+      Data statistik ringkas bulan berjalan ini:
+      - Total Pemasukan: ${dataKonteks.totalPemasukan}
+      - Total Pengeluaran: ${dataKonteks.totalPengeluaran}
+      - Sisa Saldo: ${dataKonteks.sisaSaldo}
+      - Klaster Terpilih: Klaster ${dataKonteks.assignedCluster} dari total K = ${dataKonteks.kmeansCacheData.optimalK}
+      - Jumlah transaksi pengeluaran bulan ini: ${dataKonteks.kmeansCacheData.totalTx}
+      
+      Daftar Target Keuangan Pengguna Saat Ini:
+      ${teksDaftarTarget}
+      
+      Daftar pengeluaran terbaru bulan ini (hanya nominal negatif): ${JSON.stringify(dataKonteks.transaksiTerakhir)}.
+      Fokus hanya pada pengeluaran ketika menentukan kategori terbesar dan pola belanja. Jangan gunakan transaksi pemasukan.
+      
       Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, dan sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
       ${zeroProgressWarning}
       
-      Tugas Utama Anda:
-      1. Berikan nama 'personaName' yang kreatif, unik, dan psikologis berdasarkan pola belanja mereka (contoh: "Si Penikmat Senja Impulsif", "Master Hemat Kuadrat", "Whale Spender").
-      2. Perhatikan kolom 'deskripsi' pada daftar transaksi pengeluaran (nominal negatif). Tebak kategori dari setiap deskripsi tersebut, lalu tentukan 'kategoriTerbesar' apa yang paling banyak menghabiskan uang pengguna (contoh hasil: "Makanan & Minuman", "Transportasi", "Lifestyle", atau "Kebutuhan Pokok").
+      Tugas Utama Anda (Batasi seluruh analisis HANYA pada kondisi pengeluaran bulan saat ini saja):
+      1. Berikan nama 'personaName' yang kreatif, unik, dan psikologis berdasarkan pola belanja mereka bulan ini (contoh: "Si Penikmat Senja Impulsif", "Master Hemat Kuadrat", "Whale Spender").
+      2. Perhatikan kolom 'deskripsi' pada daftar transaksi pengeluaran (nominal negatif). Tebak kategori dari setiap deskripsi tersebut, lalu tentukan 'kategoriTerbesar' apa yang paling banyak menghabiskan uang pengguna di bulan berjalan ini. Jangan gunakan transaksi pemasukan. Aturan Format: Gunakan spasi yang rapi dan standar manusia. Jika kategori berupa gabungan, wajib gunakan spasi sebelum dan sesudah simbol (Contoh: "Makanan & Minuman", bukan "Makanan&Minuman").
       3. Tentukan 'kondisiKesehatan' finansial mereka saat ini ("Sehat", "Waspada", atau "Kritis").
       
-      4. Berikan 'aiSaranText' berupa 3-4 kalimat nasihat finansial yang taktis dan ilmiah. Anda WAJIB:
-         - Mengevaluasi performa rasio mereka (${rasioPengeluaranTersisa}% pengeluaran vs ${rasioTabunganTersisa}% tabungan) terhadap benchmark ideal Aturan 50/30/20 (50% Kebutuhan, 30% Keinginan, 20% Tabungan).
-         - Mengaitkan temuan tersebut dengan fakta bahwa mereka dikelompokkan ke "Klaster ${dataKonteks.assignedCluster}" dari total "K = ${dataKonteks.kmeansCacheData.optimalK}" kelompok yang terbentuk dari metode Elbow.
-         - Jelaskan hubungan antara frekuensi transaksi mereka (${dataKonteks.kmeansCacheData.totalTx} kali transaksi) dengan pembengkakan alokasi keinginan (Wants). Berikan kritik tajam jika mereka berada di klaster yang tidak efisien.
+      4. Berikan 'aiSaranText' berupa 3-4 kalimat nasihat finansial yang mendalam dan menonjolkan penerapan Aturan Keuangan 50/30/20. Anda WAJIB:
+         - Bedah dan bandingkan secara tajam rasio riil pengeluaran mereka saat ini (${rasioPengeluaranTersisa}%) dan potensi tabungan mereka (${rasioTabunganTersisa}%) terhadap batasan benchmark ideal Aturan 50/30/20 (50% Kebutuhan Pokok, 30% Keinginan/Wants, 20% Tabungan/Investasi).
+         - Berikan arahan taktis bagaimana mengonfigurasi ulang atau memotong pos pengeluaran bulan berjalan ini agar bisa presisi mendekati porsi ideal tersebut.
+         - Ambil minimal satu contoh deskripsi pengeluaran dari daftar transaksi yang diberikan untuk membuktikan pos mana yang masuk dalam kategori "Kebutuhan (Needs)" atau "Keinginan (Wants)" agar ulasan menjadi sangat konkret.
 
-      5. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka. 
-         - Aturan Ketat: Jika 'currentAmount' pada data target adalah 0, Anda HARUS mengulas bahwa tabungan/dana untuk target tersebut memang masih kosong (Rp 0).
-         - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan perilaku mereka di kelompok Klaster ${dataKonteks.assignedCluster} dapat digunakan secara realistis mulai bulan depan untuk menyisihkan porsi ideal 20% agar target yang masih 0 tersebut bisa segera tercapai.`,
+      5. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka saat ini. 
+         - Aturan Ketat: Anda WAJIB menyebutkan nama dari target keuangan yang tertera pada daftar di atas. Dilarang menuliskan bahwa target tidak spesifik atau tidak diberikan.
+         - Jika target tersebut memiliki 'currentAmount' bernilai 0, ulas secara jujur bahwa dana untuk target tersebut saat ini memang masih kosong (Rp 0) atau belum dimulai progresnya.
+         - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan perilaku mereka di kelompok Klaster ${dataKonteks.assignedCluster} dievaluasi agar alokasi tabungan bulan berjalan ini bisa dioptimalkan mendekati porsi ideal minimal 20%.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -104,8 +135,9 @@ export async function generateFinancialInsight(
     const clusterId = dataKonteks.assignedCluster;
     const totalMetrikTx = dataKonteks.kmeansCacheData?.totalTx || 0;
     const daftarTarget =
-      dataKonteks.targetKeuangan?.map((g) => g.title).join(", ") ||
-      "tujuan keuangan";
+      dataKonteks.targetKeuangan && dataKonteks.targetKeuangan.length > 0
+        ? dataKonteks.targetKeuangan.map((g) => g.title).join(", ")
+        : "tujuan keuangan";
 
     return {
       personaName:
@@ -117,8 +149,8 @@ export async function generateFinancialInsight(
             ? "Sehat"
             : "Waspada"
           : "Kritis",
-      aiSaranText: `Berdasarkan pemodelan K-Means (K=${dataKonteks.kmeansCacheData?.optimalK || 3}), Anda berada pada Klaster ${clusterId} dengan intensitas ${totalMetrikTx} transaksi. Evaluasi mandiri alokasi anggaran Anda; pastikan mendekati rumus ideal 50% kebutuhan pokok, 30% keinginan, dan minimal 20% untuk tabungan/investasi.`,
-      reviewGoals: `Target impian Anda (${daftarTarget}) saat ini belum memiliki alokasi dana khusus yang terkumpul. Manfaatkan kecenderungan positif Anda di Klaster ${clusterId} untuk mulai menyisihkan sisa saldo secara disiplin demi memicu progres finansial tersebut.`,
+      aiSaranText: `Berdasarkan pemodelan K-Means (K=${dataKonteks.kmeansCacheData?.optimalK || 3}), Anda berada pada Klaster ${clusterId} dengan intensitas ${totalMetrikTx} transaksi. Evaluasi alokasi anggaran bulan ini; pastikan mendekati rumus ideal 50% kebutuhan pokok, 30% keinginan, dan minimal 20% untuk tabungan/investasi.`,
+      reviewGoals: `Target impian Anda (${daftarTarget}) saat ini belum memiliki alokasi dana khusus yang terkumpul secara maksimal. Manfaatkan sisa saldo yang ada di bulan berjalan ini secara disiplin demi memicu progres finansial tersebut.`,
     };
   }
 }

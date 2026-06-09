@@ -31,12 +31,26 @@ function calculateWCSS(
 }
 
 // --- FUNGSI INTI: PIPELINE KOMPUTASI K-MEANS BULANAN ---
-async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
-  // 1. Ambil seluruh data pengeluaran (amount < 0)
+// 🆕 Menambahkan parameter month dan year agar isolasi data presisi
+async function runKmeansComputation(
+  userId: string,
+  month: number,
+  year: number,
+  transactionsParam?: any[],
+) {
+  // 🆕 Tentukan rentang tanggal awal bulan dan akhir bulan berjalan
+  const awalBulan = new Date(year, month - 1, 1);
+  const akhirBulan = new Date(year, month, 0, 23, 59, 59);
+
+  // 1. Ambil data pengeluaran (amount < 0) HANYA pada bulan berjalan
   const transactions =
     transactionsParam ??
     (await prisma.transaction.findMany({
-      where: { userId, amount: { lt: 0 } },
+      where: {
+        userId,
+        amount: { lt: 0 },
+        date: { gte: awalBulan, lte: akhirBulan }, // 🆕 Filter Bulan Ini
+      },
       orderBy: { date: "asc" },
     }));
 
@@ -44,11 +58,9 @@ async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
   // Batasan proteksi skripsi agar algoritma klasterisasi valid secara statistik
   if (currentTotalTx < 5) {
     throw new Error(
-      "Data transaksi pengeluaran belum mencukupi (Minimal harus 5 transaksi).",
+      `Data transaksi pengeluaran bulan ini (${currentTotalTx}) belum mencukupi (Minimal harus 5 transaksi).`,
     );
   }
-
-  const currentLastTxId = transactions[currentTotalTx - 1].id;
 
   // 2. Ekstraksi Fitur 2D (X = Hari/Tanggal, Y = Nominal Absolut)
   const rawPoints = transactions.map((tx) => {
@@ -77,7 +89,7 @@ async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
       wcss: number;
     };
   } = {};
-  const maxK = 6;
+  const maxK = Math.min(6, currentTotalTx - 1); // 🆕 Dinamis agar K tidak melebihi jumlah baris data
 
   for (let kVal = 1; kVal <= maxK; kVal++) {
     const runKmeans = kmeans(normalizedPoints, kVal, {
@@ -103,32 +115,36 @@ async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
   }
 
   // Otomatisasi Deteksi Tekukan Siku Matematika (Curvature)
-  let optimalK = 3;
+  let optimalK = 1;
   let maxCurvature = -Infinity;
 
-  for (let i = 1; i < elbowData.length - 1; i++) {
-    const wcssPrev = elbowData[i - 1].wcss;
-    const wcssCurr = elbowData[i].wcss;
-    const wcssNext = elbowData[i + 1].wcss;
+  if (maxK >= 3) {
+    for (let i = 1; i < elbowData.length - 1; i++) {
+      const wcssPrev = elbowData[i - 1].wcss;
+      const wcssCurr = elbowData[i].wcss;
+      const wcssNext = elbowData[i + 1].wcss;
 
-    const dropSebelum = wcssPrev - wcssCurr;
-    const dropSesudah = wcssCurr - wcssNext;
-    const curvature = dropSebelum - dropSesudah;
+      const dropSebelum = wcssPrev - wcssCurr;
+      const dropSesudah = wcssCurr - wcssNext;
+      const curvature = dropSebelum - dropSesudah;
 
-    if (curvature > maxCurvature) {
-      maxCurvature = curvature;
-      optimalK = elbowData[i].k;
+      if (curvature > maxCurvature) {
+        maxCurvature = curvature;
+        optimalK = elbowData[i].k;
+      }
     }
-  }
 
-  // Threshold Toleransi Ambing Evaluasi Siku sebesar 5%
-  if (optimalK === 2 && elbowData[2]) {
-    const dropK2ToK3 = elbowData[1].wcss - elbowData[2].wcss;
-    const threshold = elbowData[0].wcss * 0.05;
+    // Threshold Toleransi Ambing Evaluasi Siku sebesar 5%
+    if (optimalK === 2 && elbowData[2]) {
+      const dropK2ToK3 = elbowData[1].wcss - elbowData[2].wcss;
+      const threshold = elbowData[0].wcss * 0.05;
 
-    if (dropK2ToK3 > threshold) {
-      optimalK = 3;
+      if (dropK2ToK3 > threshold) {
+        optimalK = 3;
+      }
     }
+  } else {
+    optimalK = maxK; // Fallback jika transaksi sedikit
   }
 
   const finalKmeans = kmeansResults[optimalK];
@@ -175,31 +191,37 @@ async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
 
   const cleanElbowData = elbowData.filter((item) => item.k <= 5);
 
-  // 🛠️ PERBAIKAN 1: PINDAHKAN UPSERT CACHE KE ATAS
-  // Selesaikan penulisan ke database tabel KmeansCache terlebih dahulu
+  // 🛠️ PERBAIKAN 1: UPSERT CACHE BERBASIS KANDUNGAN BULANAN
   const upsertedCache = await prisma.kmeansCache.upsert({
-    where: { userId },
+    where: {
+      userId_month_year: {
+        userId,
+        month,
+        year,
+      },
+    },
     update: {
       optimalK,
       wcss: finalKmeans.wcss,
       points: clusteredData,
       elbow: cleanElbowData,
       totalTx: currentTotalTx,
-      lastTxId: currentLastTxId,
+      assignedCluster,
     },
     create: {
       userId,
+      month, // 🆕 Wajib dicatat untuk record baru
+      year, // 🆕 Wajib dicatat untuk record baru
       optimalK,
       wcss: finalKmeans.wcss,
       points: clusteredData,
       elbow: cleanElbowData,
       totalTx: currentTotalTx,
-      lastTxId: currentLastTxId,
+      assignedCluster,
     },
   });
 
   // 🛠️ PERBAIKAN 2: SINKRONISASI PEMANGGILAN HELPER SEJARAH KEUANGAN & GEMINI
-  // Kirim data mentah matematika (rawKmeansData) agar siap dikonsumsi Aturan 50/30/20 di AI Service
   await saveFinancialAnalysisHistory({
     userId,
     optimalK,
@@ -209,6 +231,8 @@ async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
       points: clusteredData,
       elbow: cleanElbowData,
       totalTx: currentTotalTx,
+      month, // 🆕 Teruskan info bulan ke pembungkus asisten AI
+      year, // 🆕 Teruskan info tahun ke pembungkus asisten AI
     },
   });
 
@@ -221,7 +245,7 @@ async function runKmeansComputation(userId: string, transactionsParam?: any[]) {
 }
 
 // ========================================================
-// [GET] ENDPOINT: HANYA MEMBACA DATA CACHE (FAST-LOAD)
+// [GET] ENDPOINT: MEMBACA DATA CACHE BULANAN
 // ========================================================
 export async function GET(request: NextRequest) {
   try {
@@ -232,13 +256,29 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
+    // 🆕 Ambil target bulan & tahun dari parameter URL Query
+    const { searchParams } = new URL(request.url);
+    const m = parseInt(
+      searchParams.get("month") || String(new Date().getMonth() + 1),
+    );
+    const y = parseInt(
+      searchParams.get("year") || String(new Date().getFullYear()),
+    );
+
+    // 🛠️ PERBAIKAN QUERY: Cari data menggunakan compound index bulanan
     const cachedResult = await prisma.kmeansCache.findUnique({
-      where: { userId },
+      where: {
+        userId_month_year: {
+          userId,
+          month: m,
+          year: y,
+        },
+      },
     });
 
     if (!cachedResult) {
       return NextResponse.json(
-        { message: "Belum ada riwayat komputasi analisis ditemukan." },
+        { message: "Belum ada riwayat komputasi analisis untuk bulan ini." },
         { status: 404 },
       );
     }
@@ -260,7 +300,7 @@ export async function GET(request: NextRequest) {
 }
 
 // ========================================================
-// [POST] ENDPOINT: MEWAKILI KLIK MANUAL TOMBOL DASHBOARD
+// [POST] ENDPOINT: TRIGER KALKULASI ULANG BULANAN
 // ========================================================
 export async function POST(request: NextRequest) {
   try {
@@ -271,29 +311,52 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
+    // 🆕 Ambil target bulan & tahun dari URL Query (agar sinkron saat klik re-calculate)
+    const { searchParams } = new URL(request.url);
+    const m = parseInt(
+      searchParams.get("month") || String(new Date().getMonth() + 1),
+    );
+    const y = parseInt(
+      searchParams.get("year") || String(new Date().getFullYear()),
+    );
+
+    const awalBulan = new Date(y, m - 1, 1);
+    const akhirBulan = new Date(y, m, 0, 23, 59, 59);
+
+    // Ambil data transaksi murni untuk rentang bulan ini saja
     const transactions = await prisma.transaction.findMany({
-      where: { userId, amount: { lt: 0 } },
+      where: {
+        userId,
+        amount: { lt: 0 },
+        date: { gte: awalBulan, lte: akhirBulan }, // 🆕 Kunci filter pengeluaran bulan ini
+      },
       orderBy: { date: "asc" },
     });
 
     const currentTotalTx = transactions.length;
     if (currentTotalTx < 5) {
-      throw new Error(
-        "Data transaksi pengeluaran belum mencukupi (Minimal harus 5 transaksi).",
+      return NextResponse.json(
+        {
+          message: `Transaksi pengeluaran bulan ini (${currentTotalTx}) belum mencukupi. Minimal 5 transaksi untuk keperluan statistik skripsi.`,
+        },
+        { status: 400 },
       );
     }
 
-    const currentLastTxId = transactions[currentTotalTx - 1].id;
-
+    // 🛠️ PERBAIKAN QUERY VALIDASI: Cari cache pembanding bulan berjalan
     const cachedResult = await prisma.kmeansCache.findUnique({
-      where: { userId },
+      where: {
+        userId_month_year: {
+          userId,
+          month: m,
+          year: y,
+        },
+      },
     });
 
-    if (
-      cachedResult &&
-      cachedResult.totalTx === currentTotalTx &&
-      cachedResult.lastTxId === currentLastTxId
-    ) {
+    // Jika jumlah transaksi di bulan ini masih sama dengan total transaksi di cache,
+    // lewati komputasi ulang untuk menghemat memori (idempotent)
+    if (cachedResult && cachedResult.totalTx === currentTotalTx) {
       return NextResponse.json(
         {
           wcss: cachedResult.wcss,
@@ -307,7 +370,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await runKmeansComputation(userId, transactions);
+    // Eksekusi komputasi matematika dengan menyuntikkan parameter bulan berjalan
+    const result = await runKmeansComputation(userId, m, y, transactions);
 
     return NextResponse.json({
       ...result,
@@ -317,7 +381,7 @@ export async function POST(request: NextRequest) {
     console.error("POST K-Means Computation Error:", error);
     return NextResponse.json(
       { message: error.message || "Internal Server Error" },
-      { status: error.message?.includes("mencukupi") ? 400 : 500 },
+      { status: 500 },
     );
   }
 }

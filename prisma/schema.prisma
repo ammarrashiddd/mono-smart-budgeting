@@ -13,7 +13,7 @@ model User {
   password         String
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-  kmeansCache   KmeansCache?
+  kmeansCache   KmeansCache[]
   clusterHistories ClusterHistory[]
   financialTargets FinancialTarget[]
   transactions     Transaction[]
@@ -69,31 +69,40 @@ model ClusterHistory {
 }
 
 model KmeansCache {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  optimalK    Int
-  wcss        Float
-  points      Json     
-  elbow       Json     
-  totalTx     Int      
-  lastTxId    String?  
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  userId          String   
+  month           Int      
+  year            Int      
+  optimalK        Int
+  assignedCluster Int
+  wcss            Float
+  points          Json     
+  elbowb             Json     
+  totalTx         Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@index([userId])
 }
 
 model AiInsight {
   id               String   @id @default(uuid())
-  userId           String   @unique // UBAH MENJADI @unique AGAR BERPERILAKU SEPERTI CACHE
+  userId           String   
+  month            Int      
+  year             Int      
   personaName      String
   kategoriTerbesar String
   kondisiKesehatan String
   aiSaranText      String   @db.Text
   reviewGoals      String?  @db.Text
   createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt // Tambahan opsional untuk memantau waktu update cache
+  updatedAt        DateTime @updatedAt
 
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, month, year])
   @@index([userId])
 }

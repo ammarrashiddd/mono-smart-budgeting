@@ -160,7 +160,7 @@ export default function Ai({ data, isLoading }: AiProps) {
                 </span>
               </div>
 
-              <p className="text-2xl lg:text-3xl font-black text-primary/60 leading-none truncate">
+              <p className="text-2xl lg:text-3xl font-black text-primary/60">
                 {data.kategoriTerbesar}
               </p>
             </div>
