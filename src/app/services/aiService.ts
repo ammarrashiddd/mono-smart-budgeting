@@ -132,25 +132,24 @@ export async function generateFinancialInsight(
       error,
     );
 
-    const clusterId = dataKonteks.assignedCluster;
-    const totalMetrikTx = dataKonteks.kmeansCacheData?.totalTx || 0;
+    const pemasukanPenyebut = dataKonteks.totalPemasukan || 1;
+    const rasioPengeluaranTersisa = (
+      (dataKonteks.totalPengeluaran / pemasukanPenyebut) *
+      100
+    ).toFixed(1);
+
     const daftarTarget =
       dataKonteks.targetKeuangan && dataKonteks.targetKeuangan.length > 0
         ? dataKonteks.targetKeuangan.map((g) => g.title).join(", ")
         : "tujuan keuangan";
 
+    // 🛠️ RETURN ERROR: Menampilkan status sistem sibuk yang ramah untuk UI Dashboard
     return {
-      personaName:
-        clusterId === 0 ? "Si Hemat / Low Spender" : "Si Boros / High Spender",
-      kategoriTerbesar: "Pengeluaran Umum (Fallback)",
-      kondisiKesehatan:
-        clusterId === 0
-          ? dataKonteks.sisaSaldo >= 0
-            ? "Sehat"
-            : "Waspada"
-          : "Kritis",
-      aiSaranText: `Berdasarkan pemodelan K-Means (K=${dataKonteks.kmeansCacheData?.optimalK || 3}), Anda berada pada Klaster ${clusterId} dengan intensitas ${totalMetrikTx} transaksi. Evaluasi alokasi anggaran bulan ini; pastikan mendekati rumus ideal 50% kebutuhan pokok, 30% keinginan, dan minimal 20% untuk tabungan/investasi.`,
-      reviewGoals: `Target impian Anda (${daftarTarget}) saat ini belum memiliki alokasi dana khusus yang terkumpul secara maksimal. Manfaatkan sisa saldo yang ada di bulan berjalan ini secara disiplin demi memicu progres finansial tersebut.`,
+      personaName: "Sistem AI Sedang Sibuk",
+      kategoriTerbesar: "Memuat Data...",
+      kondisiKesehatan: "Sistem Sibuk",
+      aiSaranText: `Layanan Gemini AI sedang mengalami lonjakan antrean yang padat (High Demand). Berdasarkan perhitungan mandiri, rasio pengeluaran riil Anda saat ini berada di angka ${rasioPengeluaranTersisa}% dari total pemasukan. Harap evaluasi ulang alokasi ini secara mandiri agar mendekati batas ideal Aturan 50/30/20 (50% Kebutuhan, 30% Keinginan, 20% Tabungan).`,
+      reviewGoals: `Evaluasi khusus untuk target impian Anda (${daftarTarget}) saat ini belum dapat dirumuskan oleh AI karena gangguan server eksternal Google. Sembari menunggu, manfaatkan alokasi minimal 20% dari sisa saldo bulan ini untuk mengamankan tabungan Anda secara mandiri.`,
     };
   }
 }

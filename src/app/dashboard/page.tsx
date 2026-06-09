@@ -60,7 +60,7 @@ export default function DashboardPage() {
           "Gagal Memuat Grafik Statistik",
           "Terjadi kesalahan saat mengambil visualisasi tren transaksi harian Anda dari server.",
         );
-        return; // Hentikan fungsi, jangan eksekusi kode di bawahnya
+        return; // Hentikan fungsi, blokir halaman
       }
 
       if (
@@ -71,21 +71,10 @@ export default function DashboardPage() {
           "Komputasi Klaster Gagal",
           "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
         );
-        return;
+        return; // Hentikan fungsi, blokir halaman
       }
 
-      if (
-        aiRes.status === "rejected" ||
-        (aiRes.status === "fulfilled" && !aiRes.value.ok)
-      ) {
-        triggerGlobalError(
-          "Rekomendasi AI Tidak Tersedia",
-          "Modul kecerdasan buatan (Gemini AI) gagal merumuskan keputusan penasihat keuangan untuk akun Anda.",
-        );
-        return;
-      }
-
-      // 🔍 LANGKAH SCOUTING 2: Cek validasi payload internal data (Misal: Transaksi Kurang)
+      // 🔍 LANGKAH SCOUTING 2: Cek validasi payload internal data K-Means (Misal: Transaksi Kurang)
       const kmeansData = await (kmeansRes.value as Response).json();
 
       if (
@@ -99,18 +88,39 @@ export default function DashboardPage() {
           `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal lebih dari 6 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
         );
         setMlData(kmeansData); // Tetap simpan untuk referensi jumlah data
-        return;
+        return; // Hentikan fungsi, blokir halaman
       }
 
-      // 🎯 JIKA SEMUA API AMAN & LOLOS VALIDASI
-      const aiInsightData = await (aiRes.value as Response).json();
+      // 🛡️ ISOLASI ERROR AI (GEMINI 503 OVERLOAD):
+      // Jika AI bermasalah, JANGAN blokir halaman global. Biarkan charts dan K-Means tetap tampil.
+      let aiInsightData = null;
+      if (aiRes.status === "fulfilled" && aiRes.value.ok) {
+        aiInsightData = await aiRes.value.json();
+      } else {
+        console.warn(
+          "⚠️ Gemini AI sedang mengalami high demand (503). Menyiapkan data fallback otomatis.",
+        );
+        // Menyuntikkan data fallback langsung agar komponen <Ai /> tidak crash
+        aiInsightData = {
+          personaName: "Evaluator Anggaran Mandiri",
+          kategoriTerbesar: "Memuat Data...",
+          kondisiKesehatan: "Waspada",
+          aiSaranText:
+            "Sistem kecerdasan buatan (Gemini AI) sedang mengalami lonjakan antrean yang padat di server Google. Rekomendasi taktis Aturan 50/30/20 Anda akan segera diperbarui secara berkala setelah Anda menekan tombol Ulangi Analisis beberapa saat lagi.",
+          reviewGoals:
+            "Evaluasi target keuangan Anda saat ini sedang tertunda akibat pembatasan kuota API server. Harap tunggu beberapa saat.",
+        };
+      }
+
+      // 🎯 AMBIL DATA GRAFIK YANG SUDAH PASTI SUKSES
       const statsChartData = await (chartRes.value as Response).json();
 
+      // Set seluruh state data
       setMlData(kmeansData);
       setAiData(aiInsightData);
       setChartsData(statsChartData);
 
-      // Tampilkan ketiga komponen secara bersamaan
+      // Hidupkan container layout utama
       setShowAnalysis(true);
     } catch (err) {
       console.error("Gagal memuat integrasi data analisis:", err);

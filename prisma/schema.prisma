@@ -77,7 +77,7 @@ model KmeansCache {
   assignedCluster Int
   wcss            Float
   points          Json     
-  elbowb             Json     
+  elbow           Json     
   totalTx         Int
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -100,6 +100,7 @@ model AiInsight {
   reviewGoals      String?  @db.Text
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  dataHash         String   @default("") @db.Text
 
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
