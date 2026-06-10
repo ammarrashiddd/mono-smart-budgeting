@@ -10,6 +10,7 @@ import {
   Funnel,
 } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/popup/Toast";
 
 interface BulkInputItem {
   description: string;
@@ -56,6 +57,7 @@ export default function TransactionHistory({
   // State Modal & Form Input
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<TransactionItem | null>(null);
+  const { addToast } = useToast();
 
   const fetchTransactions = async () => {
     try {
@@ -167,7 +169,11 @@ export default function TransactionHistory({
           body: JSON.stringify(items),
         });
         if (!res.ok) throw new Error("Gagal memperbarui transaksi");
-        alert("Transaksi berhasil diperbarui!");
+        addToast({
+          title: "Berhasil",
+          description: "Transaksi berhasil diperbarui!",
+          variant: "success",
+        });
       } else {
         const res = await fetch("/api/transactions", {
           method: "POST",
@@ -175,7 +181,11 @@ export default function TransactionHistory({
           body: JSON.stringify(items),
         });
         if (!res.ok) throw new Error("Gagal menyimpan data transaksi");
-        alert(`Berhasil menyimpan ${items.length} transaksi!`);
+        addToast({
+          title: "Berhasil",
+          description: `Berhasil menyimpan ${items.length} transaksi!`,
+          variant: "success",
+        });
       }
 
       await fetchTransactions();
@@ -188,21 +198,28 @@ export default function TransactionHistory({
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Hapus transaksi "${name}"?`)) {
-      try {
-        const res = await fetch(`/api/transactions/${id}`, {
-          method: "DELETE",
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setTransactions(transactions.filter((t) => t.id !== id));
+        onTransactionChange?.();
+        window.dispatchEvent(new Event("transaction-updated"));
+        addToast({
+          title: "Terhapus",
+          description: `Transaksi "${name}" berhasil dihapus.`,
+          variant: "delete",
         });
-        if (res.ok) {
-          setTransactions(transactions.filter((t) => t.id !== id));
-          onTransactionChange?.();
-          window.dispatchEvent(new Event("transaction-updated"));
-        } else {
-          throw new Error("Gagal menghapus transaksi");
-        }
-      } catch (err: any) {
-        alert(err.message);
+      } else {
+        throw new Error("Gagal menghapus transaksi");
       }
+    } catch (err: any) {
+      addToast({
+        title: "Kesalahan",
+        description: err.message || "Gagal menghapus transaksi.",
+        variant: "error",
+      });
     }
   };
 

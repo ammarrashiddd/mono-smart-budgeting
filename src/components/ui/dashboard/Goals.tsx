@@ -3,6 +3,7 @@
 import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
 import GoalsForm from "@/components/form/GoalsForm";
+import { useToast } from "@/components/ui/popup/Toast";
 
 interface GoalItem {
   id: string;
@@ -26,6 +27,7 @@ export default function Goals({ onGoalChange }: GoalsProps) {
   const [inputTitle, setInputTitle] = useState("");
   const [inputTarget, setInputTarget] = useState("");
   const [inputCurrent, setInputCurrent] = useState("");
+  const { addToast } = useToast();
 
   // Fetch data dari API ketika komponen di-render
   const fetchGoals = async () => {
@@ -87,7 +89,11 @@ export default function Goals({ onGoalChange }: GoalsProps) {
     e.preventDefault();
 
     if (!inputTitle || !inputTarget) {
-      alert("Kolom Nama dan Target wajib diisi!");
+      addToast({
+        title: "Data Belum Lengkap",
+        description: "Kolom Nama dan Target wajib diisi!",
+        variant: "error",
+      });
       return;
     }
 
@@ -109,6 +115,13 @@ export default function Goals({ onGoalChange }: GoalsProps) {
           fetchGoals();
           window.dispatchEvent(new Event("goal-updated"));
           onGoalChange?.();
+          addToast({
+            title: "Berhasil",
+            description: "Target keuangan berhasil diperbarui.",
+            variant: "success",
+          });
+        } else {
+          throw new Error("Gagal memperbarui target");
         }
       } else {
         // Mode Tambah Baru (POST)
@@ -121,27 +134,54 @@ export default function Goals({ onGoalChange }: GoalsProps) {
           fetchGoals();
           window.dispatchEvent(new Event("goal-updated"));
           onGoalChange?.();
+          addToast({
+            title: "Berhasil",
+            description: "Target keuangan berhasil disimpan.",
+            variant: "success",
+          });
+        } else {
+          throw new Error("Gagal menyimpan target");
         }
       }
       setIsModalOpen(false);
     } catch (err) {
       console.error("Gagal menyimpan data:", err);
+      addToast({
+        title: "Kesalahan Data",
+        description: "Gagal menyimpan target keuangan.",
+        variant: "error",
+      });
     }
   };
 
   // Aksi Hapus dari Database via API
   const handleDelete = async (id: string, title: string) => {
-    if (confirm(`Apakah kamu yakin ingin menghapus target "${title}"?`)) {
-      try {
-        const res = await fetch(`/api/goals/${id}`, { method: "DELETE" });
-        if (res.ok) {
-          setGoals(goals.filter((g) => g.id !== id));
-          window.dispatchEvent(new Event("goal-updated"));
-          onGoalChange?.();
-        }
-      } catch (err) {
-        console.error("Gagal menghapus data:", err);
+    try {
+      const res = await fetch(`/api/goals/${id}`, { method: "DELETE" });
+
+      if (res.ok) {
+        setGoals(goals.filter((g) => g.id !== id));
+        window.dispatchEvent(new Event("goal-updated"));
+        onGoalChange?.();
+
+        // Toast Berhasil
+        addToast({
+          title: "Terhapus",
+          description: `Target "${title}" berhasil dihapus.`,
+          variant: "delete",
+        });
+      } else {
+        throw new Error("Gagal menghapus target");
       }
+    } catch (err: any) {
+      console.error("Gagal menghapus data:", err);
+
+      // Toast Gagal
+      addToast({
+        title: "Kesalahan",
+        description: err.message || "Gagal menghapus target.",
+        variant: "error",
+      });
     }
   };
 

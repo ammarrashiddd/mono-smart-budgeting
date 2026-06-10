@@ -8,8 +8,9 @@ import Ml from "@/components/ui/dashboard/Ml";
 import { Stats } from "@/components/ui/dashboard/Stats";
 import Transactions from "@/components/ui/dashboard/Transactions";
 import { useSession } from "next-auth/react";
-import { ChartBar, Sparkle, WarningCircle } from "@phosphor-icons/react";
+import { ChartBar, Sparkle } from "@phosphor-icons/react";
 import Charts from "@/components/ui/dashboard/Charts";
+import { useToast } from "@/components/ui/popup/Toast";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const [mlData, setMlData] = useState<any>(null);
   const [aiData, setAiData] = useState<any>(null);
   const [chartsData, setChartsData] = useState<any>(null);
+  const { addToast } = useToast();
 
   // ========================================================
   // 1. FUNGSI AMBIL DATA DENGAN BLOCKING ERROR HANDLER
@@ -133,6 +135,11 @@ export default function DashboardPage() {
 
   // Fungsi pembantu untuk memblokir layout dan menyalakan panel error
   const triggerGlobalError = (title: string, description: string) => {
+    addToast({
+      title,
+      description,
+      variant: "error",
+    });
     setGlobalError({ status: true, title, description });
     setShowAnalysis(false); // Sembunyikan seksi analisis komponen (Charts, Ml, Ai)
   };
@@ -224,25 +231,6 @@ export default function DashboardPage() {
           )}
         </button>
       </div>
-
-      {/* ======================================================== */}
-      {/* 🛠️ WIDGET ERROR GLOBAL TUNGGAL (MENGGANTIKAN KETIGA MODUL) */}
-      {/* ======================================================== */}
-      {globalError.status && !isAnalyzing && (
-        <div className="px-4 md:px-12 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-white rounded-xl p-10 border border-secondary/5 shadow-sm flex flex-col items-center justify-center text-center min-h-70">
-            <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center mb-4 border border-amber-100">
-              <WarningCircle size={32} weight="duotone" />
-            </div>
-            <h4 className="text-base font-black text-secondary tracking-tight">
-              {globalError.title}
-            </h4>
-            <p className="text-xs text-secondary/50 max-w-md mt-2 leading-relaxed">
-              {globalError.description}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* --- SEKSI LAYOUT UTAMA (HANYA MUNCUL JIKA KETIGANYA LOLOS FETCH & VALIDASI) --- */}
       {showAnalysis && !globalError.status && (

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { authenticate, registerUser } from "@/app/api/auth/actions";
+import { useToast } from "@/components/ui/popup/Toast";
 
 interface AuthFormData {
   username: string;
@@ -41,6 +42,7 @@ export default function AuthForm({
 
   const password = watch("password");
   const router = useRouter();
+  const { addToast } = useToast();
 
   const onSubmit = async (data: AuthFormData) => {
     setIsLoading(true);
@@ -55,9 +57,17 @@ export default function AuthForm({
         // Jalankan logika pendaftaran
         const result = await registerUser(formData);
         if (!result.success) {
-          alert(result.message);
+          addToast({
+            title: "Gagal",
+            description: result.message,
+            variant: "error",
+          });
         } else {
-          alert(result.message);
+          addToast({
+            title: "Berhasil",
+            description: result.message,
+            variant: "success",
+          });
           reset();
           setMode("signin");
         }
@@ -65,16 +75,28 @@ export default function AuthForm({
         // Jalankan logika login NextAuth
         const result = await authenticate(undefined, formData);
         if (!result.success) {
-          alert(result.message);
+          addToast({
+            title: "Gagal Login",
+            description: result.message,
+            variant: "error",
+          });
         } else {
-          alert("Selamat datang kembali!");
+          addToast({
+            title: "Selamat Datang",
+            description: "Selamat datang kembali!",
+            variant: "success",
+          });
           router.push("/dashboard");
-          router.refresh(); // Memaksa middleware memperbarui status sesi di browser
+          router.refresh();
         }
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi masalah koneksi sistem.");
+      addToast({
+        title: "Kesalahan Jaringan",
+        description: "Terjadi masalah koneksi sistem.",
+        variant: "error",
+      });
     } finally {
       setIsLoading(false);
     }
