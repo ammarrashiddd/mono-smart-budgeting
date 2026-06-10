@@ -86,8 +86,9 @@ export default function AuthForm({
             description: "Selamat datang kembali!",
             variant: "success",
           });
-          router.push("/dashboard");
-          router.refresh();
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 400);
         }
       }
     } catch (error) {
