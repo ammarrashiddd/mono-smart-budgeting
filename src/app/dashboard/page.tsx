@@ -35,9 +35,9 @@ export default function DashboardPage() {
   const [chartsData, setChartsData] = useState<any>(null);
 
   // ========================================================
-  // 1. FUNGSI AMBIL DATA (SIKLUS SCOUTING AKTIF)
+  // 1. FUNGSI AMBIL DATA (SIKLUS SCOUTING AKTIF / SILENT CHECK)
   // ========================================================
-  const fetchAllAnalysisData = async () => {
+  const fetchAllAnalysisData = async (isManualTrigger = false) => {
     if (!session?.user) return;
 
     try {
@@ -48,25 +48,17 @@ export default function DashboardPage() {
         fetch("/api/analysis/charts"),
       ]);
 
-      // 🔍 LANGKAH SCOUTING 0: Pengecekan Kondisi Awal Terbuka (Belum Pernah Analisis)
-      if (kmeansRes.status === "fulfilled" && kmeansRes.value.ok) {
-        const checkInitial = await kmeansRes.value.clone().json();
-        if (checkInitial?.hasNeverAnalyzed || checkInitial?.isInitialOpen) {
-          setGlobalError({ status: false, title: "", description: "" });
-          setShowAnalysis(false);
-          return;
-        }
-      }
-
       // 🔍 LANGKAH SCOUTING 1: Cek Grafik Statistik
       if (
         chartRes.status === "rejected" ||
         (chartRes.status === "fulfilled" && !chartRes.value.ok)
       ) {
-        triggerGlobalError(
-          "Gagal Memuat Grafik Statistik",
-          "Terjadi kesalahan saat mengambil visualisasi tren transaksi harian Anda dari server.",
-        );
+        if (isManualTrigger || showAnalysis) {
+          triggerGlobalError(
+            "Gagal Memuat Grafik Statistik",
+            "Terjadi kesalahan saat mengambil visualisasi tren transaksi harian Anda dari server.",
+          );
+        }
         return;
       }
 
@@ -75,10 +67,12 @@ export default function DashboardPage() {
         kmeansRes.status === "rejected" ||
         (kmeansRes.status === "fulfilled" && !kmeansRes.value.ok)
       ) {
-        triggerGlobalError(
-          "Komputasi Klaster Gagal",
-          "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
-        );
+        if (isManualTrigger || showAnalysis) {
+          triggerGlobalError(
+            "Komputasi Klaster Gagal",
+            "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
+          );
+        }
         return;
       }
 
@@ -109,12 +103,15 @@ export default function DashboardPage() {
         !kmeansData?.points ||
         kmeansData.points.length <= 6
       ) {
-        const totalTx = kmeansData?.points?.length || 0;
-        triggerGlobalError(
-          "Data Transaksi Belum Mencukupi",
-          `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal 7 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
-        );
-        setMlData(kmeansData);
+        // 💡 JIKA KONDISI PERTAMA KALI / SILENT CHECK: Jangan lempar error, biarkan user klik tombol manual nanti
+        if (isManualTrigger || showAnalysis) {
+          const totalTx = kmeansData?.points?.length || 0;
+          triggerGlobalError(
+            "Data Transaksi Belum Mencukupi",
+            `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal 7 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
+          );
+          setMlData(kmeansData);
+        }
         return;
       }
 
@@ -123,31 +120,33 @@ export default function DashboardPage() {
         aiRes.status === "rejected" ||
         (aiRes.status === "fulfilled" && !aiRes.value.ok)
       ) {
-        triggerGlobalError(
-          "Analisis Kecerdasan Buatan Tertunda",
-          "Sistem kecerdasan buatan (Gemini AI) sedang mengalami lonjakan antrean yang padat di server Google (503). Harap tekan tombol Ulangi Analisis beberapa saat lagi.",
-        );
+        if (isManualTrigger || showAnalysis) {
+          triggerGlobalError(
+            "Analisis Kecerdasan Buatan Tertunda",
+            "Sistem kecerdasan buatan (Gemini AI) sedang mengalami lonjakan antrean yang padat di server Google (503). Harap tekan tombol Ulangi Analisis beberapa saat lagi.",
+          );
+        }
         return;
       }
 
-      // JIKA LOLOS SELURUH TAHAPAN SCOUTING: Ambil payload bersih
+      // JIKA DATA SUDAH SIAP DAN LOLOS VALIDASI: Langsung pasang & tampilkan!
       const aiInsightData = await (aiRes.value as Response).json();
       const statsChartData = await (chartRes.value as Response).json();
 
-      // Pasang data segar ke dalam state komponen
       setMlData(kmeansData);
       setAiData(aiInsightData);
       setChartsData(statsChartData);
 
-      // Bersihkan error lama dan hidupkan Layout Dashboard Utama
       setGlobalError({ status: false, title: "", description: "" });
       setShowAnalysis(true);
     } catch (err) {
       console.error("Gagal memuat integrasi data analisis:", err);
-      triggerGlobalError(
-        "Kesalahan Integrasi Sistem",
-        "Terjadi kegagalan internal saat menyatukan seluruh modul analisis finansial.",
-      );
+      if (isManualTrigger || showAnalysis) {
+        triggerGlobalError(
+          "Kesalahan Integrasi Sistem",
+          "Terjadi kegagalan internal saat menyatukan seluruh modul analisis finansial.",
+        );
+      }
     }
   };
 
@@ -157,12 +156,13 @@ export default function DashboardPage() {
     setShowAnalysis(false);
   };
 
+  // 💡 AKTIF SEJAK AWAL: Melakukan silent-check data saat masuk halaman atau saat ada transaksi berubah
   useEffect(() => {
-    fetchAllAnalysisData();
-  }, [session]);
+    fetchAllAnalysisData(false);
+  }, [session, statsRefreshKey]);
 
   // ========================================================
-  // 2. TRIGGER DENGAN HANDLING PILIHAN GAGAL SAAT ANALISIS ULANG
+  // 2. TRIGGER DENGAN HANDLING PILIHAN GAGAL SAAT ANALISIS ULANG / BARU
   // ========================================================
   const handleTriggerAnalysis = async () => {
     setIsAnalyzing(true);
@@ -185,14 +185,12 @@ export default function DashboardPage() {
         const errorData = await res.json().catch(() => ({}));
 
         if (res.status === 400 || errorData?.isInsufficient) {
-          // Kasus 1: Transaksi riil kurang saat dipaksa hitung ulang oleh POST
           const totalTx = errorData?.points?.length || 0;
           triggerGlobalError(
             "Data Transaksi Belum Mencukupi",
             `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal 7 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
           );
         } else {
-          // Kasus 2: Server Error / K-Means gagal komputasi di backend database
           triggerGlobalError(
             "Komputasi Klaster Gagal",
             "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
@@ -200,11 +198,11 @@ export default function DashboardPage() {
         }
 
         setIsAnalyzing(false);
-        return; // 🛑 HENTIKAN KODE: Jangan lanjut panggil fetchAllAnalysisData()
+        return; // 🛑 HENTIKAN KODE
       }
 
-      // JALANKAN SYNC AMBIL DATA JIKA POST BERHASIL LOLOS (res.ok === true)
-      await fetchAllAnalysisData();
+      // JALANKAN DENGAN TRUE AGAR JIKA ADA ERROR DI SINI LANGSUNG DIRENDER KE LAYOUT WIDGET ERROR
+      await fetchAllAnalysisData(true);
     } catch (error) {
       console.error("Gagal melakukan kalkulasi ulang:", error);
       triggerGlobalError(
@@ -236,7 +234,6 @@ export default function DashboardPage() {
         <Goals
           onGoalChange={() => {
             setStatsRefreshKey((prev) => prev + 1);
-            fetchAllAnalysisData();
           }}
         />
       </div>
@@ -245,7 +242,6 @@ export default function DashboardPage() {
         <Transactions
           onTransactionChange={() => {
             setStatsRefreshKey((prev) => prev + 1);
-            fetchAllAnalysisData();
           }}
         />
       </div>
