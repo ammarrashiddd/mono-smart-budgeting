@@ -30,7 +30,7 @@ export async function generateFinancialInsight(
   dataKonteks: FinancialInsightInput,
 ) {
   try {
-    // Memastikan data goals masuk ke konsol terminal backend saat eksekusi
+    // Memastikan data goals masuk ke konsol terminal backend saat eksekusi (untuk kebutuhan debug)
     console.log("=== DEBUG GOALS DITERIMA AI SERVICE ===");
     console.log(JSON.stringify(dataKonteks.targetKeuangan, null, 2));
     console.log("=======================================");
@@ -68,37 +68,47 @@ export async function generateFinancialInsight(
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI sekaligus Data Scientist yang jenius. Anda mahir menguji anggaran bulanan dan mengaitkannya dengan hasil algoritma K-Means untuk evaluasi saat ini juga.
-      
-      Data statistik ringkas bulan berjalan ini:
-      - Total Pemasukan: ${dataKonteks.totalPemasukan}
-      - Total Pengeluaran: ${dataKonteks.totalPengeluaran}
-      - Sisa Saldo: ${dataKonteks.sisaSaldo}
-      - Klaster Terpilih: Klaster ${dataKonteks.assignedCluster} dari total K = ${dataKonteks.kmeansCacheData.optimalK}
-      - Jumlah transaksi pengeluaran bulan ini: ${dataKonteks.kmeansCacheData.totalTx}
-      
-      Daftar Target Keuangan Pengguna Saat Ini:
-      ${teksDaftarTarget}
-      
-      Daftar pengeluaran terbaru bulan ini (hanya nominal negatif): ${JSON.stringify(dataKonteks.transaksiTerakhir)}.
-      Fokus hanya pada pengeluaran ketika menentukan kategori terbesar dan pola belanja. Jangan gunakan transaksi pemasukan.
-      
-      Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, dan sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
-      ${zeroProgressWarning}
-      
-      Tugas Utama Anda (Batasi seluruh analisis HANYA pada kondisi pengeluaran bulan saat ini saja):
-      1. Perhatikan kolom 'deskripsi' pada daftar transaksi pengeluaran (nominal negatif). Tebak kategori dari setiap deskripsi tersebut, lalu tentukan 'kategoriTerbesar' apa yang paling banyak menghabiskan uang pengguna di bulan berjalan ini. Jangan gunakan transaksi pemasukan. Aturan Format: Gunakan spasi yang rapi dan standar manusia. Jika kategori berupa gabungan, wajib gunakan spasi sebelum dan sesudah simbol (Contoh: "Makanan & Minuman", bukan "Makanan&Minuman").
-      2. Tentukan 'kondisiKesehatan' finansial mereka saat ini ("Sehat", "Waspada", atau "Kritis").
-      
-      3. Berikan 'aiSaranText' berupa 3-4 kalimat nasihat finansial yang mendalam dan menonjolkan penerapan Aturan Keuangan 50/30/20. Anda WAJIB:
-         - Bedah dan bandingkan secara tajam rasio riil pengeluaran mereka saat ini (${rasioPengeluaranTersisa}%) dan potensi tabungan mereka (${rasioTabunganTersisa}%) terhadap batasan benchmark ideal Aturan 50/30/20 (50% Kebutuhan Pokok, 30% Keinginan/Wants, 20% Tabungan/Investasi).
-         - Berikan arahan taktis bagaimana mengonfigurasi ulang atau memotong pos pengeluaran bulan berjalan ini agar bisa presisi mendekati porsi ideal tersebut.
-         - Ambil minimal satu contoh deskripsi pengeluaran dari daftar transaksi yang diberikan untuk membuktikan pos mana yang masuk dalam kategori "Kebutuhan (Needs)" atau "Keinginan (Wants)" agar ulasan menjadi sangat konkret.
+      contents: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI yang cerdas sekaligus Data Scientist yang mampu menerjemahkan pola matematika rumit menjadi kesimpulan gaya hidup yang sangat seru dan mudah dipahami orang awam.
 
-      4. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka saat ini. 
-         - Aturan Ketat: Anda WAJIB menyebutkan nama dari target keuangan yang tertera pada daftar di atas. Dilarang menuliskan bahwa target tidak spesifik atau tidak diberikan.
-         - Jika target tersebut memiliki 'currentAmount' bernilai 0, ulas secara jujur bahwa dana untuk target tersebut saat ini memang masih kosong (Rp 0) atau belum dimulai progresnya.
-         - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan perilaku mereka di kelompok Klaster ${dataKonteks.assignedCluster} dievaluasi agar alokasi tabungan bulan berjalan ini bisa dioptimalkan mendekati porsi ideal minimal 20%.`,
+Sistem baru saja melakukan pengelompokan data belanja (K-Means) dan menemukan posisi kelompok pengguna saat ini. Tugas Anda adalah menonjolkan karakteristik kelompok tersebut di awal ulasan menggunakan SATU KATA inti saja secara polos, tanpa menggunakan penekanan huruf tebal atau istilah teknis.
+
+Data statistik ringkas bulan berjalan ini:
+- Total Pemasukan: ${dataKonteks.totalPemasukan}
+- Total Pengeluaran: ${dataKonteks.totalPengeluaran}
+- Sisa Saldo: ${dataKonteks.sisaSaldo}
+- Status Klaster Sistem: Klaster ${dataKonteks.assignedCluster} dari total K = ${dataKonteks.kmeansCacheData.optimalK} kelompok pola belanja.
+- Jumlah transaksi pengeluaran bulan ini: ${dataKonteks.kmeansCacheData.totalTx}
+
+Daftar Target Keuangan Pengguna Saat Ini:
+${teksDaftarTarget}
+
+Daftar pengeluaran terbaru bulan ini (hanya nominal negatif): ${JSON.stringify(dataKonteks.transaksiTerakhir)}.
+
+Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, dan sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
+${zeroProgressWarning}
+
+ATURAN BAHASA SANGAT KETAT (PANDUAN PENERJEMAHAN K-MEANS):
+- DILARANG KERAS menggunakan kata "Klaster", "Cluster", "Centroid", "K-Means", "K=3", atau angka indeks "0, 1, 2" pada output teks.
+- DILARANG KERAS menggunakan simbol Markdown atau tanda bintang bintang (seperti **) untuk menebalkan kata di dalam teks string. Tulis semua kata sebagai teks polos biasa.
+- Anda WAJIB menonjolkan hasil pengelompokan sistem dengan memberikan 'LABEL KARAKTER BELANJA' berupa SATU KATA SAJA (berupa kata sifat/pola perilaku dasar) langsung di dalam teks string tanpa format tebal.
+- Petakan status data numerik di atas menjadi klasifikasi 1 kata berikut:
+  * Jika Rasio Pengeluaran Rendah (< 40%): Wajib gunakan kata "Hemat".
+  * Jika Rasio Pengeluaran Tinggi (> 60%) ATAU frekuensi transaksi banyak: Wajib gunakan kata "Boros".
+  * Jika jumlah transaksi sedikit tapi nominalnya langsung melonjak besar: Wajib gunakan kata "Impulsif".
+  * Jika berada di antara batas tersebut (40% - 60%), analisis secara mandiri rasio pengeluaran mereka dan berikan label 1 kata manusiawi yang relevan (Wajib pilih salah satu dari kata: "Stabil" atau "Wajar").
+
+Tugas Utama Anda (Kembalikan jawaban murni dalam struktur JSON objek yang valid):
+1. Tentukan 'kategoriTerbesar' apa yang paling banyak menghabiskan uang pengguna di bulan berjalan ini (Contoh format: "Makanan & Minuman"). Gunakan spasi sebelum dan sesudah simbol &.
+2. Tentukan 'kondisiKesehatan' finansial mereka saat ini ("Sehat", "Waspada", atau "Kritis").
+
+3. Berikan 'aiSaranText' berupa 3-4 kalimat nasihat finansial. Anda WAJIB:
+   - Buka kalimat pertama dengan langsung menyebutkan label Karakter Belanja 1 kata hasil analisis sistem tersebut tanpa tambahan kata 'tipe', 'pengelola', atau format huruf tebal (Contoh: "Bulan ini, pola transaksi Anda secara nyata masuk dalam kategori Stabil. Karakteristik ini menunjukkan bahwa..."). Jelaskan apa arti karakter 1 kata tersebut bagi dompet mereka secara nyata (frekuensi transaksi vs ukuran nominal uang yang keluar).
+   - Bedah dan bandingkan rasio riil pengeluaran mereka saat ini (${rasioPengeluaranTersisa}%) dan potensi tabungan mereka (${rasioTabunganTersisa}%) terhadap batasan benchmark ideal Aturan 50/30/20 (50% Kebutuhan Pokok, 30% Keinginan, 20% Tabungan).
+   - Sebutkan minimal satu contoh deskripsi pengeluaran dari daftar transaksi untuk membuktikan pos tersebut masuk kategori Kebutuhan atau Keinginan.
+
+4. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka saat ini.
+   - Anda WAJIB menyebutkan nama dari target keuangan mereka secara eksplisit.
+   - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan dari Karakter Belanja 1 kata mereka bulan ini (Hemat / Boros / Stabil / Impulsif) dalam membantu atau menghambat pencapaian target tersebut tanpa menggunakan format huruf tebal.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -140,7 +150,7 @@ export async function generateFinancialInsight(
         ? dataKonteks.targetKeuangan.map((g) => g.title).join(", ")
         : "tujuan keuangan";
 
-    // 🛠️ RETURN ERROR: Menampilkan status sistem sibuk yang ramah untuk UI Dashboard
+    // RETURN FALLBACK (Ambil data lokal jika server penuh/gagal)
     return {
       kategoriTerbesar: "Memuat Data...",
       kondisiKesehatan: "Sistem Sibuk",
