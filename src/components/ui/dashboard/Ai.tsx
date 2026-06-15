@@ -5,7 +5,6 @@ import { InvoiceIcon } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
 
 interface AiInsightData {
-  personaName: string;
   kategoriTerbesar: string;
   kondisiKesehatan: string;
   aiSaranText: string;
@@ -94,7 +93,7 @@ export default function Ai({ data, isLoading }: AiProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-1.5">
                 <h4 className="text-lg font-black uppercase text-primary/80">
-                  Gemini AI Insights • {data.personaName}
+                  ANALISIS PENGELUARAN
                 </h4>
               </div>
 
@@ -110,7 +109,7 @@ export default function Ai({ data, isLoading }: AiProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-1.5">
                 <h4 className="text-lg font-black uppercase text-primary/80">
-                  Goals Review
+                  ANALISIS TUJUAN KEUANGAN
                 </h4>
               </div>
 
@@ -124,7 +123,7 @@ export default function Ai({ data, isLoading }: AiProps) {
           <div className="w-full lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-primary/5 pt-6 lg:pt-0 lg:pl-6">
             <div>
               <p className="text-xs font-bold text-primary/40 uppercase mb-2">
-                Financial Health
+                KESEHATAN FINANSIAL
               </p>
 
               <div className="flex items-center gap-2 mb-3">
@@ -134,7 +133,9 @@ export default function Ai({ data, isLoading }: AiProps) {
                       ? "text-emerald-500/80"
                       : data.kondisiKesehatan.toLowerCase() === "kritis"
                         ? "text-red-500/80"
-                        : "text-amber-500/80"
+                        : data.kondisiKesehatan.toLowerCase() === "sistem sibuk"
+                          ? "text-gray-400" // Warna netral abu-abu saat server offline/busy
+                          : "text-amber-500/80"
                   }`}
                 >
                   {data.kondisiKesehatan}
@@ -146,7 +147,9 @@ export default function Ai({ data, isLoading }: AiProps) {
                   ? "Arus kas Anda seimbang. Alokasi pemasukan berhasil menutup pos pengeluaran dengan sangat baik."
                   : data.kondisiKesehatan.toLowerCase() === "kritis"
                     ? "Peringatan! Akumulasi pengeluaran Anda sudah melampaui batas aman sisa saldo efektif."
-                    : "Rasio akumulasi pengeluaran bulanan berjalan mendesak kapasitas sisa saldo efektif Anda."}
+                    : data.kondisiKesehatan.toLowerCase() === "sistem sibuk"
+                      ? "Gagal terhubung dengan server Google Gemini. Menggunakan kalkulasi matematika lokal."
+                      : "Rasio akumulasi pengeluaran bulanan berjalan mendesak kapasitas sisa saldo efektif Anda."}
               </p>
             </div>
 

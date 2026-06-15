@@ -74,7 +74,6 @@ export async function saveFinancialAnalysisHistory({
   if (existingCache && existingCache.dataHash === currentDataHash) {
     // 🔄 JIKA DATA IDENTIK: Gunakan langsung hasil analisis yang sudah ada di database
     aiResult = {
-      personaName: existingCache.personaName,
       kategoriTerbesar: existingCache.kategoriTerbesar,
       kondisiKesehatan: existingCache.kondisiKesehatan,
       aiSaranText: existingCache.aiSaranText,
@@ -128,7 +127,6 @@ export async function saveFinancialAnalysisHistory({
       },
     },
     update: {
-      personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
       aiSaranText: aiResult.aiSaranText,
@@ -139,7 +137,6 @@ export async function saveFinancialAnalysisHistory({
       userId,
       month,
       year,
-      personaName: aiResult.personaName,
       kategoriTerbesar: aiResult.kategoriTerbesar,
       kondisiKesehatan: aiResult.kondisiKesehatan,
       aiSaranText: aiResult.aiSaranText,
@@ -154,7 +151,6 @@ export async function saveFinancialAnalysisHistory({
       userId,
       optimalK,
       assignedCluster,
-      personaName: aiResult.personaName,
       totalPemasukan,
       totalPengeluaran,
       sisaSaldo,

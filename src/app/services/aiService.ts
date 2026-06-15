@@ -87,16 +87,15 @@ export async function generateFinancialInsight(
       ${zeroProgressWarning}
       
       Tugas Utama Anda (Batasi seluruh analisis HANYA pada kondisi pengeluaran bulan saat ini saja):
-      1. Berikan nama 'personaName' yang kreatif, unik, dan psikologis berdasarkan pola belanja mereka bulan ini (contoh: "Si Penikmat Senja Impulsif", "Master Hemat Kuadrat", "Whale Spender").
-      2. Perhatikan kolom 'deskripsi' pada daftar transaksi pengeluaran (nominal negatif). Tebak kategori dari setiap deskripsi tersebut, lalu tentukan 'kategoriTerbesar' apa yang paling banyak menghabiskan uang pengguna di bulan berjalan ini. Jangan gunakan transaksi pemasukan. Aturan Format: Gunakan spasi yang rapi dan standar manusia. Jika kategori berupa gabungan, wajib gunakan spasi sebelum dan sesudah simbol (Contoh: "Makanan & Minuman", bukan "Makanan&Minuman").
-      3. Tentukan 'kondisiKesehatan' finansial mereka saat ini ("Sehat", "Waspada", atau "Kritis").
+      1. Perhatikan kolom 'deskripsi' pada daftar transaksi pengeluaran (nominal negatif). Tebak kategori dari setiap deskripsi tersebut, lalu tentukan 'kategoriTerbesar' apa yang paling banyak menghabiskan uang pengguna di bulan berjalan ini. Jangan gunakan transaksi pemasukan. Aturan Format: Gunakan spasi yang rapi dan standar manusia. Jika kategori berupa gabungan, wajib gunakan spasi sebelum dan sesudah simbol (Contoh: "Makanan & Minuman", bukan "Makanan&Minuman").
+      2. Tentukan 'kondisiKesehatan' finansial mereka saat ini ("Sehat", "Waspada", atau "Kritis").
       
-      4. Berikan 'aiSaranText' berupa 3-4 kalimat nasihat finansial yang mendalam dan menonjolkan penerapan Aturan Keuangan 50/30/20. Anda WAJIB:
+      3. Berikan 'aiSaranText' berupa 3-4 kalimat nasihat finansial yang mendalam dan menonjolkan penerapan Aturan Keuangan 50/30/20. Anda WAJIB:
          - Bedah dan bandingkan secara tajam rasio riil pengeluaran mereka saat ini (${rasioPengeluaranTersisa}%) dan potensi tabungan mereka (${rasioTabunganTersisa}%) terhadap batasan benchmark ideal Aturan 50/30/20 (50% Kebutuhan Pokok, 30% Keinginan/Wants, 20% Tabungan/Investasi).
          - Berikan arahan taktis bagaimana mengonfigurasi ulang atau memotong pos pengeluaran bulan berjalan ini agar bisa presisi mendekati porsi ideal tersebut.
          - Ambil minimal satu contoh deskripsi pengeluaran dari daftar transaksi yang diberikan untuk membuktikan pos mana yang masuk dalam kategori "Kebutuhan (Needs)" atau "Keinginan (Wants)" agar ulasan menjadi sangat konkret.
 
-      5. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka saat ini. 
+      4. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka saat ini. 
          - Aturan Ketat: Anda WAJIB menyebutkan nama dari target keuangan yang tertera pada daftar di atas. Dilarang menuliskan bahwa target tidak spesifik atau tidak diberikan.
          - Jika target tersebut memiliki 'currentAmount' bernilai 0, ulas secara jujur bahwa dana untuk target tersebut saat ini memang masih kosong (Rp 0) atau belum dimulai progresnya.
          - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan perilaku mereka di kelompok Klaster ${dataKonteks.assignedCluster} dievaluasi agar alokasi tabungan bulan berjalan ini bisa dioptimalkan mendekati porsi ideal minimal 20%.`,
@@ -105,14 +104,12 @@ export async function generateFinancialInsight(
         responseSchema: {
           type: "OBJECT",
           properties: {
-            personaName: { type: "STRING" },
             kategoriTerbesar: { type: "STRING" },
             kondisiKesehatan: { type: "STRING" },
             aiSaranText: { type: "STRING" },
             reviewGoals: { type: "STRING" },
           },
           required: [
-            "personaName",
             "kategoriTerbesar",
             "kondisiKesehatan",
             "aiSaranText",
@@ -145,7 +142,6 @@ export async function generateFinancialInsight(
 
     // 🛠️ RETURN ERROR: Menampilkan status sistem sibuk yang ramah untuk UI Dashboard
     return {
-      personaName: "Sistem AI Sedang Sibuk",
       kategoriTerbesar: "Memuat Data...",
       kondisiKesehatan: "Sistem Sibuk",
       aiSaranText: `Layanan Gemini AI sedang mengalami lonjakan antrean yang padat (High Demand). Berdasarkan perhitungan mandiri, rasio pengeluaran riil Anda saat ini berada di angka ${rasioPengeluaranTersisa}% dari total pemasukan. Harap evaluasi ulang alokasi ini secara mandiri agar mendekati batas ideal Aturan 50/30/20 (50% Kebutuhan, 30% Keinginan, 20% Tabungan).`,

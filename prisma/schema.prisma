@@ -54,7 +54,6 @@ model ClusterHistory {
   userId           String
   optimalK         Int
   assignedCluster  Int
-  personaName      String
   totalPemasukan   Float
   totalPengeluaran Float
   sisaSaldo        Float
@@ -92,8 +91,7 @@ model AiInsight {
   id               String   @id @default(uuid())
   userId           String   
   month            Int      
-  year             Int      
-  personaName      String
+  year             Int
   kategoriTerbesar String
   kondisiKesehatan String
   aiSaranText      String   @db.Text
