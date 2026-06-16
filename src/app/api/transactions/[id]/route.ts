@@ -89,17 +89,19 @@ export async function PUT(
     const amount = body.amount;
     const date = body.date;
 
+    // 💡 MENANGKAP FIELD KATEGORI BARU DARI FRONTEND
+    // Jika tipenya 'income', otomatis pastikan nilainya adalah 'PEMASUKAN'
+    const type = body.type;
+    const category = type === "income" ? "PEMASUKAN" : body.category;
+
     // Toleransi jika frontend mengirim 'goalId' sedangkan backend mencari 'financialTargetId'
     const goalId = body.goalId || body.financialTargetId;
 
-    // Mencari penamaan tipe transaksi (antisipasi jika tipenya terselip/salah nama)
-    const type = body.type;
-
     // 4. Validasi data yang super ketat dengan pesan yang informatif
-    if (!description || !amount || !type) {
+    if (!description || !amount || !type || !category) {
       return NextResponse.json(
         {
-          message: `Deskripsi, nominal, dan tipe transaksi wajib diisi. Data yang diterima: description=${description}, amount=${amount}, type=${type}`,
+          message: `Deskripsi, nominal, tipe, dan kategori transaksi wajib diisi. Data yang diterima: description=${description}, amount=${amount}, type=${type}, category=${category}`,
         },
         { status: 400 },
       );
@@ -152,13 +154,14 @@ export async function PUT(
         }
       }
 
-      // c. Eksekusi update data transaksi utama ke database
+      // c. Eksekusi update data transaksi utama ke database (Termasuk Kategori)
       await tx.transaction.update({
         where: { id: transactionId },
         data: {
           description,
           amount: finalNewAmount,
           date: date ? new Date(date) : new Date(),
+          category, // 💡 Kategori kini ikut diperbarui ke skema Prisma Anda
           financialTargetId: targetId,
         },
       });

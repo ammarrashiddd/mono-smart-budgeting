@@ -25,6 +25,7 @@ model Transaction {
   userId      String
   amount      Float
   description String?
+  category    TransactionCategory
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
   financialTargetId String? 
@@ -104,4 +105,18 @@ model AiInsight {
 
   @@unique([userId, month, year])
   @@index([userId])
+}
+
+enum TransactionCategory {
+  MAKANAN_MINUMAN    
+  TAGIHAN   
+  TRANSPORTASI       
+  PENDIDIKAN  
+  KESEHATAN          
+  HIBURAN_GAYA_HIDUP 
+  BELANJA_FASHION   
+  HOBI
+  PEMASUKAN          
+  INVESTASI_TABUNGAN 
+  LAIN_LAIN          
 }

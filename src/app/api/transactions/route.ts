@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { TransactionCategory } from "@/generated/prisma/enums";
 
 // STRUCTURE DATA DARI FRONTEND
 interface BulkInputItem {
@@ -8,6 +9,7 @@ interface BulkInputItem {
   amount: string;
   type: "income" | "expense";
   date: string;
+  category?: string; // Menambahkan properti category (opsional dari frontend)
   goalId?: string;
 }
 
@@ -59,9 +61,16 @@ export async function POST(req: Request) {
       const createdTxList = [];
 
       for (const item of items) {
-        if (!item.description || !item.amount) {
-          throw new Error("Deskripsi dan nominal tidak boleh kosong.");
+        if (!item.description || !item.amount || !item.type) {
+          throw new Error("Deskripsi, tipe, dan nominal tidak boleh kosong.");
         }
+
+        // 💡 Ambil kategori atau set fallback otomatis ke "LAIN_LAIN" jika tipenya expense namun kosong
+        const rawCategory =
+          item.type === "income" ? "PEMASUKAN" : item.category || "LAIN_LAIN";
+
+        // 💡 Lakukan Type Casting aman ke tipe TransactionCategory Enum Prisma
+        const finalCategory = rawCategory as TransactionCategory;
 
         const parsedAmount = parseFloat(item.amount);
         // Jika pengeluaran (expense), jadikan nilainya minus (-) di DB. Jika income, biarkan plus (+)
@@ -72,13 +81,14 @@ export async function POST(req: Request) {
         const targetId =
           item.type === "expense" && item.goalId ? item.goalId : null;
 
-        // a. Simpan Transaksi Keuangan
+        // a. Simpan Transaksi Keuangan dengan Kategori Baru
         const newTx = await tx.transaction.create({
           data: {
             userId,
             description: item.description,
             amount: finalAmount,
             date: item.date ? new Date(item.date) : new Date(),
+            category: finalCategory, // 👈 Sekarang aman dari error type mismatch TypeScript!
             financialTargetId: targetId,
           },
         });

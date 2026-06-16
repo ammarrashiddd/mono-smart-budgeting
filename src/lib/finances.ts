@@ -40,6 +40,7 @@ export async function calculateUserStats(
       deskripsi: tx.description || "Tanpa Deskripsi",
       nominal: tx.amount,
       tanggal: new Date(tx.date).toLocaleDateString("id-ID"),
+      category: tx.category,
     };
   });
 

@@ -31,14 +31,13 @@ function calculateWCSS(
 }
 
 // --- FUNGSI INTI: PIPELINE KOMPUTASI K-MEANS BULANAN ---
-// 🆕 Menambahkan parameter month dan year agar isolasi data presisi
 async function runKmeansComputation(
   userId: string,
   month: number,
   year: number,
   transactionsParam?: any[],
 ) {
-  // 🆕 Tentukan rentang tanggal awal bulan dan akhir bulan berjalan
+  // Tentukan rentang tanggal awal bulan dan akhir bulan berjalan
   const awalBulan = new Date(year, month - 1, 1);
   const akhirBulan = new Date(year, month, 0, 23, 59, 59);
 
@@ -49,7 +48,16 @@ async function runKmeansComputation(
       where: {
         userId,
         amount: { lt: 0 },
-        date: { gte: awalBulan, lte: akhirBulan }, // 🆕 Filter Bulan Ini
+        date: { gte: awalBulan, lte: akhirBulan },
+      },
+      // 💡 PERBAIKAN: Pastikan field 'category' ikut terambil dari database
+      select: {
+        id: true,
+        description: true,
+        amount: true,
+        date: true,
+        category: true, // 👈 WAJIB DISINI agar tidak undefined
+        financialTargetId: true,
       },
       orderBy: { date: "asc" },
     }));
@@ -89,7 +97,7 @@ async function runKmeansComputation(
       wcss: number;
     };
   } = {};
-  const maxK = Math.min(6, currentTotalTx - 1); // 🆕 Dinamis agar K tidak melebihi jumlah baris data
+  const maxK = Math.min(6, currentTotalTx - 1); // Dinamis agar K tidak melebihi jumlah baris data
 
   for (let kVal = 1; kVal <= maxK; kVal++) {
     const runKmeans = kmeans(normalizedPoints, kVal, {
@@ -186,12 +194,13 @@ async function runKmeansComputation(
       x: new Date(tx.date).getDate(),
       y: Math.abs(tx.amount),
       cluster: sortedClusterId,
+      category: tx.category || "LAIN_LAIN", // 💡 Sertakan properti kategori di koordinat titik Recharts (bisa dipakai frontend untuk tooltip custom)
     };
   });
 
   const cleanElbowData = elbowData.filter((item) => item.k <= 5);
 
-  // 🛠️ PERBAIKAN 1: UPSERT CACHE BERBASIS KANDUNGAN BULANAN
+  // 🛠️ UPSERT CACHE K-MEANS
   const upsertedCache = await prisma.kmeansCache.upsert({
     where: {
       userId_month_year: {
@@ -210,8 +219,8 @@ async function runKmeansComputation(
     },
     create: {
       userId,
-      month, // 🆕 Wajib dicatat untuk record baru
-      year, // 🆕 Wajib dicatat untuk record baru
+      month,
+      year,
       optimalK,
       wcss: finalKmeans.wcss,
       points: clusteredData,
@@ -221,7 +230,8 @@ async function runKmeansComputation(
     },
   });
 
-  // 🛠️ PERBAIKAN 2: SINKRONISASI PEMANGGILAN HELPER SEJARAH KEUANGAN & GEMINI
+  // 🛠️ INTEGRASI UTAMA KE ASISTEN AI (GEMINI)
+  // Data transactions yang dikirim ke sini sekarang dijamin membawa field 'category' hasil select di atas.
   await saveFinancialAnalysisHistory({
     userId,
     optimalK,
@@ -231,8 +241,8 @@ async function runKmeansComputation(
       points: clusteredData,
       elbow: cleanElbowData,
       totalTx: currentTotalTx,
-      month, // 🆕 Teruskan info bulan ke pembungkus asisten AI
-      year, // 🆕 Teruskan info tahun ke pembungkus asisten AI
+      month,
+      year,
     },
   });
 
@@ -256,7 +266,6 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // 🆕 Ambil target bulan & tahun dari parameter URL Query
     const { searchParams } = new URL(request.url);
     const m = parseInt(
       searchParams.get("month") || String(new Date().getMonth() + 1),
@@ -265,7 +274,6 @@ export async function GET(request: NextRequest) {
       searchParams.get("year") || String(new Date().getFullYear()),
     );
 
-    // 🛠️ PERBAIKAN QUERY: Cari data menggunakan compound index bulanan
     const cachedResult = await prisma.kmeansCache.findUnique({
       where: {
         userId_month_year: {
@@ -311,7 +319,6 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // 🆕 Ambil target bulan & tahun dari URL Query (agar sinkron saat klik re-calculate)
     const { searchParams } = new URL(request.url);
     const m = parseInt(
       searchParams.get("month") || String(new Date().getMonth() + 1),
@@ -323,12 +330,20 @@ export async function POST(request: NextRequest) {
     const awalBulan = new Date(y, m - 1, 1);
     const akhirBulan = new Date(y, m, 0, 23, 59, 59);
 
-    // Ambil data transaksi murni untuk rentang bulan ini saja
+    // 💡 PERBAIKAN: Tambahkan select field 'category' di POST handler saat mengambil transaksi pembanding
     const transactions = await prisma.transaction.findMany({
       where: {
         userId,
         amount: { lt: 0 },
-        date: { gte: awalBulan, lte: akhirBulan }, // 🆕 Kunci filter pengeluaran bulan ini
+        date: { gte: awalBulan, lte: akhirBulan },
+      },
+      select: {
+        id: true,
+        description: true,
+        amount: true,
+        date: true,
+        category: true, // 👈 Penting agar data transaksi pembanding tidak kehilangan objek kategori
+        financialTargetId: true,
       },
       orderBy: { date: "asc" },
     });
@@ -343,7 +358,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 🛠️ PERBAIKAN QUERY VALIDASI: Cari cache pembanding bulan berjalan
     const cachedResult = await prisma.kmeansCache.findUnique({
       where: {
         userId_month_year: {
@@ -356,7 +370,6 @@ export async function POST(request: NextRequest) {
 
     const forceRecompute = searchParams.get("force")?.toLowerCase() === "true";
 
-    // Jika jumlah transaksi pengeluaran tetap sama dan tidak ada flag force, kembalikan cache.
     if (
       cachedResult &&
       cachedResult.totalTx === currentTotalTx &&
@@ -375,7 +388,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Eksekusi komputasi matematika dengan menyuntikkan parameter bulan berjalan
     const result = await runKmeansComputation(userId, m, y, transactions);
 
     return NextResponse.json({

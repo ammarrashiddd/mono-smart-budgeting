@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { calculateUserStats } from "@/lib/finances";
 import { generateFinancialInsight } from "@/app/services/aiService";
-import crypto from "crypto"; // 🆕 Import modul crypto bawaan Node.js untuk hashing
+import crypto from "crypto"; // Import modul crypto bawaan Node.js untuk hashing
 
-// 1. PERBAIKAN INTERFACE: Menampung properti bulan dan tahun dari API Route
+// 1. INTERFACE: Menampung properti bulan dan tahun dari API Route
 interface SaveHistoryParams {
   userId: string;
   optimalK: number;
@@ -28,6 +28,7 @@ export async function saveFinancialAnalysisHistory({
   const { month, year } = rawKmeansData;
 
   // 1. Ambil data kalkulasi murni finansial HANYA pada bulan berjalan
+  // 💡 Catatan: pastikan di dalam fungsi calculateUserStats sudah men-select field 'category'
   const { totalPemasukan, totalPengeluaran, sisaSaldo, ringkasanTransaksi } =
     await calculateUserStats(userId, month, year);
 
@@ -42,13 +43,14 @@ export async function saveFinancialAnalysisHistory({
   });
 
   // ========================================================
-  // 🆕 SISTEM DETEKSI PERUBAHAN DATA (NAMA, NILAI, TANGGAL, GOALS)
+  // 🆕 SISTEM DETEKSI PERUBAHAN DATA (SENSITIF TERHADAP KATEGORI)
   // ========================================================
 
-  // Gabungkan sidik jari dari setiap transaksi (nama, nominal, milidetik tanggal) beserta goals
+  // Gabungkan sidik jari dari setiap transaksi (nama, nominal, KATEGORI, milidetik tanggal) beserta goals
   const rawDataString = JSON.stringify({
     txFingerprints: ringkasanTransaksi.map(
-      (t) => `${t.deskripsi}-${t.nominal}-${new Date(t.tanggal).getTime()}`,
+      (t) =>
+        `${t.deskripsi}-${t.nominal}-${t.category || "LAIN_LAIN"}-${new Date(t.tanggal).getTime()}`,
     ),
     goalsFingerprints: userGoals.map(
       (g) => `${g.title}-${g.currentAmount}-${g.targetAmount}`,
@@ -72,7 +74,7 @@ export async function saveFinancialAnalysisHistory({
   let aiResult;
 
   if (existingCache && existingCache.dataHash === currentDataHash) {
-    // 🔄 JIKA DATA IDENTIK: Gunakan langsung hasil analisis yang sudah ada di database
+    // 🔄 JIKA DATA IDENTIK: Gunakan langsung hasil analisis yang sudah ada di database (Hemat Kuota)
     aiResult = {
       kategoriTerbesar: existingCache.kategoriTerbesar,
       kondisiKesehatan: existingCache.kondisiKesehatan,
@@ -82,11 +84,22 @@ export async function saveFinancialAnalysisHistory({
   } else {
     // ⚠️ JIKA DATA BERUBAH ATAU BELUM ADA CACHE: Jalankan analisis baru lewat Gemini AI
 
+    // Filter transaksi yang hanya berupa pengeluaran (nominal < 0)
     const pengeluaranTerakhir = ringkasanTransaksi.filter(
       (tx) => tx.nominal < 0,
     );
 
-    // Merakit struktur konteks baru yang segar untuk disetor ke Gemini AI
+    // 💡 🆕 AGREGASI MAKRO: Hitung akumulasi total pengeluaran per kategori
+    const rekapPerKategori = pengeluaranTerakhir.reduce(
+      (acc, tx) => {
+        const cat = tx.category || "LAIN_LAIN";
+        acc[cat] = (acc[cat] || 0) + Math.abs(tx.nominal);
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    // Merakit struktur konteks baru yang segar dan kaya data untuk disetor ke Gemini AI
     const dataKonteksFinansial = {
       totalPemasukan,
       totalPengeluaran,
@@ -101,7 +114,15 @@ export async function saveFinancialAnalysisHistory({
         month,
         year,
       },
-      transaksiTerakhir: pengeluaranTerakhir,
+      // 💡 🆕 Kirim transaksi terakhir lengkap dengan info kategorinya
+      transaksiTerakhir: pengeluaranTerakhir.map((tx) => ({
+        deskripsi: tx.deskripsi,
+        nominal: tx.nominal,
+        tanggal: tx.tanggal,
+        category: tx.category || "LAIN_LAIN",
+      })),
+      // 💡 🆕 Menyisipkan rekap total per kategori ke payload AI konteks
+      rekapKategori: rekapPerKategori,
       targetKeuangan: userGoals.map((g) => ({
         title: g.title,
         targetAmount: Number(g.targetAmount),
@@ -131,7 +152,7 @@ export async function saveFinancialAnalysisHistory({
       kondisiKesehatan: aiResult.kondisiKesehatan,
       aiSaranText: aiResult.aiSaranText,
       reviewGoals: aiResult.reviewGoals,
-      dataHash: currentDataHash, // 🆕 Update kode hash penanda data terbaru
+      dataHash: currentDataHash, // Update kode hash penanda data terbaru
     },
     create: {
       userId,
@@ -141,7 +162,7 @@ export async function saveFinancialAnalysisHistory({
       kondisiKesehatan: aiResult.kondisiKesehatan,
       aiSaranText: aiResult.aiSaranText,
       reviewGoals: aiResult.reviewGoals,
-      dataHash: currentDataHash, // 🆕 Daftarkan kode hash penanda data baru
+      dataHash: currentDataHash, // Daftarkan kode hash penanda data baru
     },
   });
 

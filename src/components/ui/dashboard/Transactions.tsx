@@ -17,6 +17,7 @@ interface BulkInputItem {
   amount: string;
   type: "income" | "expense";
   date: string;
+  category: string; // 👈 Menampung kategori default
   goalId?: string;
 }
 
@@ -25,12 +26,27 @@ interface TransactionItem {
   description: string;
   amount: number;
   date: string;
+  category?: string | null; // 👈 Properti Baru dari database Prisma
   financialTargetId?: string | null;
 }
 
 interface TransactionsProps {
   onTransactionChange?: () => void;
 }
+
+// Daftar kategori default yang selaras dengan database dan form Anda
+const FILTER_CATEGORIES = [
+  { value: "MAKANAN_MINUMAN", label: "Makanan & Minuman" },
+  { value: "TAGIHAN", label: "Tagihan" },
+  { value: "TRANSPORTASI", label: "Transportasi" },
+  { value: "PENDIDIKAN", label: "Pendidikan" },
+  { value: "KESEHATAN", label: "Kesehatan" },
+  { value: "HIBURAN_GAYA_HIDUP", label: "Hiburan & Gaya Hidup" },
+  { value: "BELANJA_FASHION", label: "Belanja & Fashion" },
+  { value: "HOBI", label: "Hobi" },
+  { value: "INVESTASI_TABUNGAN", label: "Investasi & Tabungan" },
+  { value: "LAIN_LAIN", label: "Lain-lain" },
+];
 
 export default function TransactionHistory({
   onTransactionChange,
@@ -45,7 +61,10 @@ export default function TransactionHistory({
   );
   const [typeFilter, setTypeFilter] = useState<
     "semua" | "pemasukan" | "pengeluaran"
-  >("semua"); // 👈 State Baru
+  >("semua");
+  const [categoryFilter, setCategoryFilter] = useState<"semua" | string>(
+    "semua",
+  ); // 👈 State Baru untuk Filter Kategori
   const [sortFilter, setSortFilter] = useState<
     "default" | "terendah" | "tertinggi"
   >("default");
@@ -87,7 +106,7 @@ export default function TransactionHistory({
   }, [onTransactionChange]);
 
   // ========================================================
-  // 🛠️ LOGIKA FILTER DAN SORTING LENGKAP
+  // 🛠️ LOGIKA FILTER DAN SORTING LENGKAP + KATEGORI
   // ========================================================
   const filteredAndSortedTransactions = transactions
     .filter((tx) => {
@@ -103,14 +122,19 @@ export default function TransactionHistory({
         }
       }
 
-      // 2. Filter Berdasarkan Jenis (Pemasukan / Pengeluaran) 👈 Logika Baru
+      // 2. Filter Berdasarkan Jenis (Pemasukan / Pengeluaran)
       if (typeFilter === "pemasukan" && tx.amount < 0) return false;
       if (typeFilter === "pengeluaran" && tx.amount >= 0) return false;
+
+      // 3. Filter Berdasarkan Kategori 👈 Logika Baru
+      if (categoryFilter !== "semua" && tx.category !== categoryFilter) {
+        return false;
+      }
 
       return true;
     })
     .sort((a, b) => {
-      // 3. Sorting Berdasarkan Nilai Mutlak (Math.abs)
+      // 4. Sorting Berdasarkan Nilai Mutlak (Math.abs)
       if (sortFilter === "terendah") {
         return Math.abs(a.amount) - Math.abs(b.amount);
       }
@@ -134,7 +158,7 @@ export default function TransactionHistory({
   // Reset ke halaman 1 jika filter berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [timeFilter, typeFilter, sortFilter]);
+  }, [timeFilter, typeFilter, categoryFilter, sortFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -155,6 +179,7 @@ export default function TransactionHistory({
       description: item.description,
       amount: item.amount,
       date: item.date,
+      category: item.category || null,
       financialTargetId: item.financialTargetId || null,
     });
     setIsModalOpen(true);
@@ -267,7 +292,7 @@ export default function TransactionHistory({
           </button>
         </div>
 
-        {/* 🛠️ BARIS PANEL FILTER (UPDATE: SEKARANG ADA 3 SELECT DROPDOWN) */}
+        {/* 🛠️ BARIS PANEL FILTER (UPDATE: SEKARANG ADA 4 SELECT DROPDOWN) */}
         <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-6 p-3 bg-secondary/2 rounded-xl border border-secondary/5">
           <div className="flex items-center gap-1.5 text-secondary/40 text-[11px] font-bold uppercase tracking-wider pl-1">
             <Funnel size={14} weight="bold" />
@@ -284,7 +309,7 @@ export default function TransactionHistory({
             <option value="semua">Semua Riwayat</option>
           </select>
 
-          {/* Dropdown 2: Jenis Transaksi (BARU) */}
+          {/* Dropdown 2: Jenis Transaksi */}
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as any)}
@@ -295,7 +320,21 @@ export default function TransactionHistory({
             <option value="pengeluaran">Pengeluaran</option>
           </select>
 
-          {/* Dropdown 3: Urutan Nominal */}
+          {/* Dropdown 3: Kategori (BARU) */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="bg-white text-secondary text-xs font-bold py-1.5 px-2.5 rounded-md border border-secondary/10 shadow-sm focus:outline-none focus:border-tertiary cursor-pointer max-w-45"
+          >
+            <option value="semua">Semua Kategori</option>
+            {FILTER_CATEGORIES.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Dropdown 4: Urutan Nominal */}
           <select
             value={sortFilter}
             onChange={(e) => setSortFilter(e.target.value as any)}
@@ -324,10 +363,20 @@ export default function TransactionHistory({
                     <p className="text-sm md:text-base font-bold text-secondary tracking-tight truncate">
                       {item.description}
                     </p>
-                    <div className="mt-0.5">
-                      <span className="text-[8px] md:text-[9px] font-medium text-secondary/30 block">
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <span className="text-[8px] md:text-[9px] font-medium text-secondary/30 block whitespace-nowrap">
                         {formatDate(item.date)}
                       </span>
+                      {item.category && (
+                        <>
+                          <span className="text-[9px] text-secondary/20">
+                            •
+                          </span>
+                          <span className="text-[8px] md:text-[9px] font-bold text-tertiary uppercase bg-tertiary/5 px-1.5 py-0.5 rounded tracking-wider">
+                            {item.category.replace("_", " ")}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -410,6 +459,7 @@ export default function TransactionHistory({
                   description: editingTx.description,
                   amount: editingTx.amount,
                   date: editingTx.date,
+                  category: editingTx.category || null,
                   goalId: editingTx.financialTargetId || null,
                 }
               : null

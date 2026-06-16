@@ -4,20 +4,34 @@ import { X, Plus, Trash } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
 import type { Dispatch, SetStateAction, FormEvent } from "react";
 
+// 1. Tambahkan Enum Kategori di Tingkat Interface Frontend
+export type TransactionCategory =
+  | "MAKANAN_MINUMAN"
+  | "TAGIHAN"
+  | "TRANSPORTASI"
+  | "PENDIDIKAN"
+  | "KESEHATAN"
+  | "HIBURAN_GAYA_HIDUP"
+  | "BELANJA_FASHION"
+  | "HOBI"
+  | "PEMASUKAN"
+  | "INVESTASI_TABUNGAN"
+  | "LAIN_LAIN";
+
 interface BulkInputItem {
   description: string;
   amount: string;
   type: "income" | "expense";
   date: string;
+  category: TransactionCategory | ""; // Menyimpan nilai kategori untuk Prisma DB
   goalId?: string;
 }
 
-// 1. PERBAIKAN: Sesuaikan interface dengan nama kolom di Prisma DB
 interface GoalOption {
   id: string;
   title: string;
-  targetAmount: number; // Sebelumnya targetDana
-  currentAmount: number; // Sebelumnya danaTerkumpul
+  targetAmount: number;
+  currentAmount: number;
 }
 
 interface TransactionsFormProps {
@@ -28,10 +42,25 @@ interface TransactionsFormProps {
     description: string;
     amount: number;
     date: string;
+    category?: string | null; // Dukungan properti edit data
     goalId?: string | null;
   } | null;
   handleSaveBulk: (items: BulkInputItem[]) => Promise<void>;
 }
+
+// 2. Daftar Kategori Default Khusus untuk Pengeluaran (Expense)
+export const EXPENSE_CATEGORIES = [
+  { value: "MAKANAN_MINUMAN", label: "Makanan & Minuman" },
+  { value: "TAGIHAN", label: "Tagihan" },
+  { value: "TRANSPORTASI", label: "Transportasi" },
+  { value: "PENDIDIKAN", label: "Pendidikan" },
+  { value: "KESEHATAN", label: "Kesehatan" },
+  { value: "HIBURAN_GAYA_HIDUP", label: "Hiburan & Gaya Hidup" },
+  { value: "HOBI", label: "Hobi" },
+  { value: "BELANJA_FASHION", label: "Belanja & Fashion" },
+  { value: "INVESTASI_TABUNGAN", label: "Investasi & Tabungan" },
+  { value: "LAIN_LAIN", label: "Lain-lain" },
+];
 
 export default function TransactionsForm({
   setIsModalOpen,
@@ -44,6 +73,7 @@ export default function TransactionsForm({
       amount: "",
       type: "expense",
       date: new Date().toISOString().split("T")[0],
+      category: "", // Default awal kosong untuk memaksa user memilih
       goalId: "",
     },
   ]);
@@ -72,12 +102,16 @@ export default function TransactionsForm({
   // Set data jika dalam mode EDIT
   useEffect(() => {
     if (editingTx) {
+      const isIncome = editingTx.amount >= 0;
       setFormItems([
         {
           description: editingTx.description,
           amount: Math.abs(editingTx.amount).toString(),
-          type: editingTx.amount >= 0 ? "income" : "expense",
+          type: isIncome ? "income" : "expense",
           date: new Date(editingTx.date).toISOString().split("T")[0],
+          category:
+            (editingTx.category as TransactionCategory) ||
+            (isIncome ? "PEMASUKAN" : ""),
           goalId: editingTx.goalId || "",
         },
       ]);
@@ -96,6 +130,7 @@ export default function TransactionsForm({
         amount: "",
         type: "expense",
         date: lastDate,
+        category: "",
         goalId: "",
       },
     ]);
@@ -113,8 +148,14 @@ export default function TransactionsForm({
   ) => {
     const updatedItems = [...formItems];
 
-    if (field === "type" && value === "income") {
-      updatedItems[index].goalId = "";
+    // 💡 LOGIKA UTAMA: Jika berpindah tipe
+    if (field === "type") {
+      if (value === "income") {
+        updatedItems[index].goalId = "";
+        updatedItems[index].category = "PEMASUKAN"; // Kunci otomatis jika income
+      } else {
+        updatedItems[index].category = ""; // Kosongkan agar user milih ulang lewat dropdown jika expense
+      }
     }
 
     updatedItems[index] = {
@@ -124,15 +165,11 @@ export default function TransactionsForm({
     setFormItems(updatedItems);
   };
 
-  // 2. PERBAIKAN: Kirim sinyal update ke halaman Goals setelah data disimpan
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
       await handleSaveBulk(formItems);
-
-      // Memicu event kustom agar widget Goals di sebelahnya mendengarkan dan me-refresh angka tabungan
       window.dispatchEvent(new Event("transaction-updated"));
-
       setIsModalOpen(false);
     } catch (err) {
       console.error("Gagal menyimpan transaksi bulk:", err);
@@ -181,6 +218,7 @@ export default function TransactionsForm({
                     )}
                   </div>
 
+                  {/* BARIS 1: TOGGLE & DESKRIPSI */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div className="md:col-span-3">
                       <div className="grid grid-cols-2 gap-1 h-10">
@@ -217,23 +255,26 @@ export default function TransactionsForm({
                           )
                         }
                         placeholder="Nama transaksi (e.g. Alokasi Tabungan Laptop)"
-                        className="w-full h-10 border border-gray-200 rounded-lg px-3 text-xs outline-none focus:ring-2 focus:ring-tertiary/20"
+                        className="w-full h-10 border border-gray-200 rounded-lg px-3 text-xs outline-none focus:ring-2 focus:ring-tertiary/20 bg-white text-gray-900"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
-                    <div className="md:col-span-8 flex flex-col gap-2">
+                  {/* BARIS 2: TANGGAL & NOMINAL */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div className="md:col-span-6">
                       <input
                         type="date"
                         value={item.date}
                         onChange={(e) =>
                           handleInputChange(index, "date", e.target.value)
                         }
-                        className="w-full h-10 border border-gray-200 rounded-lg px-2 text-xs outline-none focus:ring-2 focus:ring-tertiary/20 bg-white"
+                        className="w-full h-10 border border-gray-200 rounded-lg px-2 text-xs outline-none focus:ring-2 focus:ring-tertiary/20 bg-white text-gray-900"
                         required
                       />
+                    </div>
+                    <div className="md:col-span-6">
                       <input
                         type="number"
                         value={item.amount}
@@ -241,85 +282,99 @@ export default function TransactionsForm({
                           handleInputChange(index, "amount", e.target.value)
                         }
                         placeholder="Nominal (Rp)"
-                        className="w-full h-10 border border-gray-200 rounded-lg px-3 text-xs outline-none focus:ring-2 focus:ring-tertiary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full h-10 border border-gray-200 rounded-lg px-3 text-xs outline-none focus:ring-2 focus:ring-tertiary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-white text-gray-900"
                         required
                       />
                     </div>
+                  </div>
 
-                    <div className="md:col-span-4 relative flex flex-col justify-start">
-                      {item.type === "expense" ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveGoalDropdown(
-                                activeGoalDropdown === index ? null : index,
-                              )
-                            }
-                            className={`w-full h-10 md:h-full min-h-10 px-3 rounded-lg border text-xs font-bold flex items-center justify-between gap-1 transition-all cursor-pointer ${
-                              item.goalId
-                                ? "bg-tertiary/10 border-tertiary text-tertiary"
-                                : "border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-secondary"
-                            }`}
-                          >
-                            <span className="truncate text-[11px]">
-                              {item.goalId
-                                ? `Goal: ${selectedGoal?.title || "Terpilih"}`
-                                : "Hubungkan ke Goal"}
-                            </span>
-                            {item.goalId && (
-                              <X
-                                size={14}
-                                weight="bold"
-                                className="hover:text-red-500 cursor-pointer shrink-0 ml-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleInputChange(index, "goalId", "");
+                  {/* 💡 BARIS 3: DROPDOWN KATEGORI & KONEKSI GOAL (Dinamis Berdasarkan Tipe) */}
+                  {/* Grid disesuaikan otomatis: Jika expense terbagi 2 kolom, jika income tersembunyi */}
+                  <div
+                    className={`grid grid-cols-1 gap-3 ${item.type === "expense" ? "md:grid-cols-12" : "hidden"}`}
+                  >
+                    {/* DROPDOWN KATEGORI DEFAULT */}
+                    <div className="md:col-span-6">
+                      <select
+                        value={item.category}
+                        onChange={(e) =>
+                          handleInputChange(index, "category", e.target.value)
+                        }
+                        className="w-full h-10 border border-gray-200 rounded-lg px-2 text-xs outline-none focus:ring-2 focus:ring-tertiary/20 bg-white text-gray-900"
+                        required={item.type === "expense"}
+                      >
+                        <option value="">Pilih Kategori</option>
+                        {EXPENSE_CATEGORIES.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* SELEKTOR HUBUNGKAN KE GOAL */}
+                    <div className="md:col-span-6 relative flex flex-col justify-start">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveGoalDropdown(
+                            activeGoalDropdown === index ? null : index,
+                          )
+                        }
+                        className={`w-full h-10 px-3 rounded-lg border text-xs font-bold flex items-center justify-between gap-1 transition-all cursor-pointer ${
+                          item.goalId
+                            ? "bg-tertiary/10 border-tertiary text-tertiary"
+                            : "border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-secondary"
+                        }`}
+                      >
+                        <span className="truncate text-[11px]">
+                          {item.goalId
+                            ? `Goal: ${selectedGoal?.title || "Terpilih"}`
+                            : "Hubungkan ke Goal"}
+                        </span>
+                        {item.goalId && (
+                          <X
+                            size={14}
+                            weight="bold"
+                            className="hover:text-red-500 cursor-pointer shrink-0 ml-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInputChange(index, "goalId", "");
+                              setActiveGoalDropdown(null);
+                            }}
+                          />
+                        )}
+                      </button>
+
+                      {activeGoalDropdown === index && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-secondary/10 rounded-xl shadow-xl z-20 max-h-40 overflow-y-auto p-1 text-left animate-in fade-in slide-in-from-top-1 duration-100">
+                          <p className="text-[9px] font-black uppercase text-secondary/30 px-2 py-1 border-b border-secondary/5 tracking-wider">
+                            Pilih Target Finansial:
+                          </p>
+                          {goalsList.length === 0 ? (
+                            <p className="text-[11px] text-gray-400 p-2 text-center">
+                              Belum ada target goals aktif.
+                            </p>
+                          ) : (
+                            goalsList.map((goal) => (
+                              <button
+                                key={goal.id}
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange(index, "goalId", goal.id);
                                   setActiveGoalDropdown(null);
                                 }}
-                              />
-                            )}
-                          </button>
-
-                          {activeGoalDropdown === index && (
-                            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-secondary/10 rounded-xl shadow-xl z-20 max-h-40 overflow-y-auto p-1 text-left animate-in fade-in slide-in-from-top-1 duration-100">
-                              <p className="text-[9px] font-black uppercase text-secondary/30 px-2 py-1 border-b border-secondary/5 tracking-wider">
-                                Pilih Target Finansial:
-                              </p>
-                              {goalsList.length === 0 ? (
-                                <p className="text-[11px] text-gray-400 p-2 text-center">
-                                  Belum ada target goals aktif.
-                                </p>
-                              ) : (
-                                goalsList.map((goal) => (
-                                  <button
-                                    key={goal.id}
-                                    type="button"
-                                    onClick={() => {
-                                      handleInputChange(
-                                        index,
-                                        "goalId",
-                                        goal.id,
-                                      );
-                                      setActiveGoalDropdown(null);
-                                    }}
-                                    className={`w-full text-left px-2.5 py-2 text-xs rounded-lg flex items-center justify-between hover:bg-secondary/5 transition-all cursor-pointer font-medium ${
-                                      item.goalId === goal.id
-                                        ? "text-tertiary font-bold bg-tertiary/5"
-                                        : "text-secondary"
-                                    }`}
-                                  >
-                                    <span className="truncate">
-                                      {goal.title}
-                                    </span>
-                                  </button>
-                                ))
-                              )}
-                            </div>
+                                className={`w-full text-left px-2.5 py-2 text-xs rounded-lg flex items-center justify-between hover:bg-secondary/5 transition-all cursor-pointer font-medium ${
+                                  item.goalId === goal.id
+                                    ? "text-tertiary font-bold bg-tertiary/5"
+                                    : "text-secondary"
+                                }`}
+                              >
+                                <span className="truncate">{goal.title}</span>
+                              </button>
+                            ))
                           )}
-                        </>
-                      ) : (
-                        <div className="w-full h-full hidden md:block" />
+                        </div>
                       )}
                     </div>
                   </div>
