@@ -93,7 +93,7 @@ export default function Ai({ data, isLoading }: AiProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-1.5">
                 <h4 className="text-lg font-black uppercase text-primary/80">
-                  ANALISIS PENGELUARAN
+                  Ringkasan Pengeluaran Anda
                 </h4>
               </div>
 
@@ -109,7 +109,7 @@ export default function Ai({ data, isLoading }: AiProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-1.5">
                 <h4 className="text-lg font-black uppercase text-primary/80">
-                  ANALISIS TUJUAN KEUANGAN
+                  Progres Celengan Anda
                 </h4>
               </div>
 
@@ -123,7 +123,7 @@ export default function Ai({ data, isLoading }: AiProps) {
           <div className="w-full lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-primary/5 pt-6 lg:pt-0 lg:pl-6">
             <div>
               <p className="text-xs font-bold text-primary/40 uppercase mb-2">
-                KESEHATAN FINANSIAL
+                Kondisi Dompet
               </p>
 
               <div className="flex items-center gap-2 mb-3">
@@ -159,7 +159,7 @@ export default function Ai({ data, isLoading }: AiProps) {
             <div className="mt-5">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-primary/40 uppercase">
-                  Kategori Terbesar
+                  Pengeluaran Terbanyak
                 </span>
               </div>
 

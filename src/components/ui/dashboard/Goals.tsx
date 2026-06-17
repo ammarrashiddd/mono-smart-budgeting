@@ -201,7 +201,7 @@ export default function Goals({ onGoalChange }: GoalsProps) {
         <div className="flex flex-row items-center justify-between mb-8 md:mb-12">
           <div className="flex items-center gap-3">
             <h3 className="text-xs md:text-base font-black uppercase text-secondary">
-              Tujuan Keuangan
+              Target Tabungan
             </h3>
             {isManaging && (
               <button

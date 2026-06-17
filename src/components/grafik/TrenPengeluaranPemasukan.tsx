@@ -25,7 +25,7 @@ const CustomAreaTooltip = ({ active, payload }: any) => {
               {item.name}:
             </span>
             <span className="font-bold text-[#ebebeb]">
-              Rp {item.value.toLocaleString("id-ID")}
+              {item.value.toLocaleString("id-ID")}
             </span>
           </div>
         ))}
@@ -48,7 +48,7 @@ export default function TrenPengeluaranPemasukan({
 }) {
   return (
     // FIX 1: Ditambahkan overflow-x-auto dan scrollbar-none (opsional) agar bisa digeser ke samping di mobile
-    <main className="w-full overflow-x-auto select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <main className="w-full overflow-x-auto select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
       {/* FIX 2: Tentukan tinggi container kaku. 
         Pada elemen ini, kita pasang min-w-[650px] (atau bisa dinaikkan ke 800px jika datanya 12 bulan penuh) 
         agar di mobile chart-nya tetap lebar dan memicu scrolling horizontal, sementara di desktop tetap lebar penuh (md:min-w-full).
@@ -92,12 +92,12 @@ export default function TrenPengeluaranPemasukan({
                   const formatted = (value / 1000000)
                     .toFixed(1)
                     .replace(".0", "");
-                  return `Rp ${formatted}jt`;
+                  return `${formatted}jt`;
                 } else if (value >= 1000) {
                   const formatted = (value / 1000).toFixed(1).replace(".0", "");
-                  return `Rp ${formatted}rb`;
+                  return `${formatted}rb`;
                 }
-                return `Rp ${value.toLocaleString("id-ID")}`;
+                return `${value.toLocaleString("id-ID")}`;
               }}
             />
             <Tooltip

@@ -66,7 +66,7 @@ export function Stats({ refreshKey }: StatsProps) {
       <div className="p-4 md:p-6 rounded-lg transition-all group bg-white border border-secondary/10 hover:border-tertiary shadow-sm hover:shadow-md">
         <div className="flex items-center justify-between mb-2 md:mb-4">
           <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-widest opacity-40 group-hover:opacity-100 transition-opacity truncate mr-2">
-            Total Pemasukan
+            Uang Masuk
           </span>
           <div className="shrink-0 text-secondary/20 group-hover:text-tertiary transition-colors">
             <div className="scale-75 md:scale-100 origin-right">
@@ -84,7 +84,7 @@ export function Stats({ refreshKey }: StatsProps) {
       <div className="p-4 md:p-6 rounded-lg transition-all group bg-white border border-secondary/10 hover:border-tertiary shadow-sm hover:shadow-md">
         <div className="flex items-center justify-between mb-2 md:mb-4">
           <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-widest opacity-40 group-hover:opacity-100 transition-opacity truncate mr-2">
-            Total Pengeluaran
+            Uang Keluar
           </span>
           <div className="shrink-0 text-secondary/20 group-hover:text-tertiary transition-colors">
             <div className="scale-75 md:scale-100 origin-right">
@@ -102,7 +102,7 @@ export function Stats({ refreshKey }: StatsProps) {
       <div className="p-4 md:p-6 rounded-lg transition-all group bg-white border border-secondary/10 hover:border-tertiary shadow-sm hover:shadow-md">
         <div className="flex items-center justify-between mb-2 md:mb-4">
           <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-widest opacity-40 group-hover:opacity-100 transition-opacity truncate mr-2">
-            Sisa Saldo
+            Sisa Uang
           </span>
           <div className="shrink-0 text-secondary/20 group-hover:text-tertiary transition-colors">
             <div className="scale-75 md:scale-100 origin-right">

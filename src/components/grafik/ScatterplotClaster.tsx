@@ -58,12 +58,6 @@ export default function ScatterplotClaster({ data, COLORS }: MlProps) {
               {formatRupiah(info.y)}
             </span>
           </p>
-          <p
-            className="text-[9px] font-black uppercase tracking-wider mt-1"
-            style={{ color: currentClusterColor }}
-          >
-            Klaster #{info.cluster + 1}
-          </p>
         </div>
       );
     }
@@ -71,7 +65,7 @@ export default function ScatterplotClaster({ data, COLORS }: MlProps) {
   };
 
   return (
-    <main className="w-full overflow-x-auto select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <main className="w-full overflow-x-auto select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
       <div className="h-56 md:h-64 text-[10px] font-medium min-w-187.5 md:min-w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
@@ -97,12 +91,12 @@ export default function ScatterplotClaster({ data, COLORS }: MlProps) {
                   const formatted = (value / 1000000)
                     .toFixed(1)
                     .replace(".0", "");
-                  return `Rp ${formatted}jt`;
+                  return `${formatted}jt`;
                 } else if (value >= 1000) {
                   const formatted = (value / 1000).toFixed(1).replace(".0", "");
-                  return `Rp ${formatted}rb`;
+                  return `${formatted}rb`;
                 }
-                return `Rp ${value.toLocaleString("id-ID")}`;
+                return `${value.toLocaleString("id-ID")}`;
               }}
             />
             <Tooltip content={<ScatterTooltip />} />
