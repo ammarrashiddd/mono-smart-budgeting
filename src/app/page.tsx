@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "@/components/nav/Navbar";
+import BeforeAfterSimulation from "@/components/ui/main/BeforeAfterSimulation";
 import Description from "@/components/ui/main/Description";
 import MainImage from "@/components/ui/main/MainImage";
 import Pipeline from "@/components/ui/main/Pipeline";
@@ -15,6 +16,11 @@ export default function Home() {
         {/* description */}
         <div className="px-6 md:px-12">
           <Description />
+        </div>
+
+        {/* before/after simulation */}
+        <div className="px-6 md:px-12 mt-16">
+          <BeforeAfterSimulation />
         </div>
 
         {/* pipeline */}
