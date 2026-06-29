@@ -16,7 +16,7 @@ interface KmeansResult {
   k: number;
   wcss: number | string;
   points: DataPoint[];
-  elbow?: Array<{ k: number; wcss: number }>; // Array koordinat metode elbow dari backend
+  elbow?: Array<{ k: number; wcss: number }>;
 }
 
 interface MlProps {
@@ -27,6 +27,11 @@ interface MlProps {
 export default function Ml({ data, isLoading }: MlProps) {
   // Palet warna klaster finansial kontras
   const COLORS = ["#1A365D", "#10B981", "#F59E0B", "#F97316", "#F43F5E"];
+
+  const namaBulanSekarang = new Date().toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
 
   // ========================================================
   // 1. KONDISI TAMPILAN SKELETON (LOADING STATE)
@@ -45,12 +50,41 @@ export default function Ml({ data, isLoading }: MlProps) {
               Riwayat Pengeluaran
             </h3>
           </div>
+          <div className="px-3 py-1 bg-secondary text-primary rounded-md text-xs font-bold uppercase tracking-wider">
+            {namaBulanSekarang}
+          </div>
         </div>
 
         {/* BOX : Scatter Plot K-Means */}
-        <div className="w-full">
+        <div className="w-full mb-6">
           <div className="h-full bg-secondary/1 rounded-lg border border-secondary/15 py-3 animate-in fade-in duration-300">
             <ScatterplotClaster data={data} COLORS={COLORS} />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium text-secondary/70 leading-relaxed">
+            {/* Sumbu X */}
+            <div className="p-3 bg-secondary/5 rounded-lg border border-secondary/5">
+              <p className="font-bold text-secondary text-sm mb-1">
+                Sumbu Mendatar
+              </p>
+              <p>
+                Menunjukkan Tanggal Transaksi Anda dari tanggal 1 hingga 31
+                dalam sebulan ini.
+              </p>
+            </div>
+
+            {/* Sumbu Y */}
+            <div className="p-3 bg-secondary/5 rounded-lg border border-secondary/5">
+              <p className="font-bold text-secondary text-sm mb-1">
+                Sumbu Tegak
+              </p>
+              <p>
+                Menunjukkan Nominal Uang yang dikeluarkan. Semakin tinggi posisi
+                titik, semakin besar nilainya.
+              </p>
+            </div>
           </div>
         </div>
       </div>

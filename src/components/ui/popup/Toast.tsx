@@ -60,7 +60,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const timeoutId = window.setTimeout(() => {
       setToasts((previous) => previous.filter((item) => item.id !== id));
       delete timeouts.current[id];
-    }, 2000);
+    }, 1500);
 
     timeouts.current[id] = timeoutId;
   };

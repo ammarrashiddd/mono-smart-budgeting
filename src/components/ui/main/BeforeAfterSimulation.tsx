@@ -4,91 +4,111 @@ export default function BeforeAfterSimulation() {
   const [activeTab, setActiveTab] = useState("mono");
 
   return (
-    <section className="py-6 px-4 text-gray-900 font-sans">
-      <div className="max-w-4xl mx-auto text-center">
-        {/* Judul Seksi */}
-        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
-          Masih Zaman Catat Uang Secara Manual?
-        </h2>
-        <p className="text-gray-600 max-w-xl mx-auto mb-10 text-base md:text-lg">
-          Lihat perbandingan bagaimana asisten pintar kami mengubah cara ribet
-          jadi super simpel.
-        </p>
-
-        {/* Tab Kontrol */}
-        <div className="inline-flex p-1.5 bg-gray-200 rounded-xl mb-12 gap-2 shadow-inner">
-          <button
-            onClick={() => setActiveTab("manual")}
-            className={`px-6 py-2.5 text-sm font-bold rounded-lg cursor-pointer transition-all duration-200 ${
-              activeTab === "manual"
-                ? "bg-red-600 text-white shadow-md"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Cara Lama (Ribet)
-          </button>
-          <button
-            onClick={() => setActiveTab("mono")}
-            className={`px-6 py-2.5 text-sm font-bold rounded-lg cursor-pointer transition-all duration-200 ${
-              activeTab === "mono"
-                ? "bg-tertiary text-white shadow-md"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Cara MONO (Pintar)
-          </button>
+    <section className="text-secondary">
+      <div className="max-w-full mx-auto">
+        {/* Label Section - Disamakan dengan gaya About Mono */}
+        <div className="inline-block px-4 md:px-6 py-1.5 mb-6 border-2 border-secondary rounded-md">
+          <span className="text-xs font-bold text-secondary uppercase tracking-wider">
+            Comparison
+          </span>
         </div>
 
-        {/* Area Konten Simulasi */}
-        <div className="bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden min-h-85 flex flex-col md:flex-row">
+        {/* Judul Seksi - Meniru tipografi Hero Description */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-4">
+          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-[1.1] max-w-2xl">
+            Masih Zaman Catat Uang Secara Manual?
+          </h2>
+          <p className="text-secondary/80 max-w-md text-sm md:text-base font-medium">
+            Lihat perbandingan bagaimana asisten pintar kami mengubah cara ribet
+            menjadi super simpel.
+          </p>
+        </div>
+
+        {/* Tab Kontrol - Menggunakan variasi warna secondary/5 */}
+        <div className="flex justify-start mb-8">
+          <div className="inline-flex p-1 bg-secondary/5 border border-secondary/10 rounded-md gap-1">
+            <button
+              onClick={() => setActiveTab("manual")}
+              className={`px-5 py-2 text-xs md:text-sm font-bold uppercase tracking-wider rounded-md cursor-pointer transition-all duration-200 ${
+                activeTab === "manual"
+                  ? "bg-red-600 text-primary shadow-sm"
+                  : "text-secondary/60 hover:text-secondary"
+              }`}
+            >
+              Cara Lama (Ribet)
+            </button>
+            <button
+              onClick={() => setActiveTab("mono")}
+              className={`px-5 py-2 text-xs md:text-sm font-bold uppercase tracking-wider rounded-md cursor-pointer transition-all duration-200 ${
+                activeTab === "mono"
+                  ? "bg-tertiary text-primary shadow-sm"
+                  : "text-secondary/60 hover:text-secondary"
+              }`}
+            >
+              Cara MONO (Pintar)
+            </button>
+          </div>
+        </div>
+
+        {/* Area Konten Simulasi - Menggunakan skema Bento Card Style */}
+        <div className="bg-white rounded-lg border-2 border-secondary/10 overflow-hidden min-h-85 flex flex-col md:flex-row transition-all duration-300">
           {/* Sisi Kiri: Visualisasi Status / Kondisi */}
           <div
-            className={`p-8 md:w-2/5 flex flex-col justify-center items-center text-white transition-all duration-300 ${
+            className={`p-8 md:w-2/5 flex flex-col justify-center items-center text-center transition-all duration-500 ${
               activeTab === "manual"
-                ? "bg-linear-to-br from-red-600 to-red-600"
-                : "bg-linear-to-br from-tertiary to-tertiary"
+                ? "bg-red-600 text-primary border-b md:border-b-0 md:border-r border-secondary/10"
+                : "bg-tertiary text-primary"
             }`}
           >
-            <span className="text-5xl mb-4">
+            <span className="text-6xl mb-4 transition-transform duration-300 group-hover:scale-110">
               {activeTab === "manual" ? "🤯" : "😎"}
             </span>
-            <h3 className="text-xl font-bold uppercase tracking-wider mb-2">
+            <h3 className="text-2xl font-extrabold tracking-tight mb-2">
               {activeTab === "manual" ? "Bikin Pusing" : "Tenang & Beres"}
             </h3>
-            <p className="text-xs opacity-90 text-center max-w-50">
+            <p className={`text-xs md:text-sm font-medium opacity-80 max-w-xs`}>
               {activeTab === "manual"
                 ? "Banyak waktu terbuang hanya untuk urusan angka."
                 : "Biarkan teknologi kecerdasan buatan bekerja untuk Anda."}
             </p>
           </div>
 
-          {/* Sisi Kanan: Poin-Poin Detail Masalah/Solusi */}
-          <div className="p-8 md:w-3/5 flex flex-col justify-center text-left">
+          {/* Sisi Kanan: Poin-Poin Detail */}
+          <div className="p-8 md:w-3/5 flex flex-col justify-center bg-secondary/5">
             {activeTab === "manual" ? (
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <span className="text-red-500 font-bold mr-3 text-lg">✕</span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <span className="text-secondary font-bold mr-3 text-lg">
+                    ✕
+                  </span>
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     Harus ketik rumus Excel manual atau catat di buku satu per
                     satu.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 font-bold mr-3 text-lg">✕</span>
-                  <p className="text-gray-700 text-sm md:text-base">
-                    Kategori <strong>"Lain-lain"</strong> menumpuk dan
-                    membingungkan di akhir bulan.
+                  <span className="text-secondary font-bold mr-3 text-lg">
+                    ✕
+                  </span>
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
+                    Kategori{" "}
+                    <span className="underline decoration-2">"Lain-lain"</span>{" "}
+                    menumpuk dan membingungkan di akhir bulan.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 font-bold mr-3 text-lg">✕</span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <span className="text-secondary font-bold mr-3 text-lg">
+                    ✕
+                  </span>
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     Melihat angka doang, tetap bingung uang habis buat apa saja.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 font-bold mr-3 text-lg">✕</span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <span className="text-secondary font-bold mr-3 text-lg">
+                    ✕
+                  </span>
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     Baru sadar dompet kritis saat saldo ATM sudah benar-benar
                     sekarat.
                   </p>
@@ -97,36 +117,36 @@ export default function BeforeAfterSimulation() {
             ) : (
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <span className="text-emerald-500 font-bold mr-3 text-lg">
+                  <span className="text-secondary font-bold mr-3 text-lg">
                     ✓
                   </span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     Cukup masukkan angka pengeluaran, sistem rapikan semuanya.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-emerald-500 font-bold mr-3 text-lg">
+                  <span className="text-secondary font-bold mr-3 text-lg">
                     ✓
                   </span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     AI otomatis membedah isi catatan dan mengelompokkan
                     kategorinya.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-emerald-500 font-bold mr-3 text-lg">
+                  <span className="text-secondary font-bold mr-3 text-lg">
                     ✓
                   </span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     Grafik titik interaktif yang langsung dibaca lewat sekali
                     sentuh.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-emerald-500 font-bold mr-3 text-lg">
+                  <span className="text-secondary font-bold mr-3 text-lg">
                     ✓
                   </span>
-                  <p className="text-gray-700 text-sm md:text-base">
+                  <p className="text-secondary/90 text-sm md:text-base font-medium">
                     Dapat rapor sifat belanja dan peringatan dini langsung dari
                     AI.
                   </p>

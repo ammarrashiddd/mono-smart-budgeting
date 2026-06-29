@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
+// Inisialisasi klien SDK Gemini terbaru menggunakan arsitektur Interactions API
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 interface FinancialInsightInput {
@@ -20,9 +21,9 @@ interface FinancialInsightInput {
     deskripsi: string;
     nominal: number;
     tanggal: string;
-    category: string; // 💡 🆕 Tambahkan tipe properti kategori transaksi tunggal
+    category: string;
   }>;
-  rekapKategori: Record<string, number>; // 💡 🆕 Tambahkan tipe properti data makro rekapitulasi kategori
+  rekapKategori: Record<string, number>;
   targetKeuangan: Array<{
     title: string;
     targetAmount: number;
@@ -34,10 +35,10 @@ export async function generateFinancialInsight(
   dataKonteks: FinancialInsightInput,
 ) {
   try {
-    // Memastikan data goals masuk ke konsol terminal backend saat eksekusi (untuk kebutuhan debug)
+    // Logging debug untuk memantau integritas data di terminal server
     console.log("=== DEBUG GOALS DITERIMA AI SERVICE ===");
     console.log(JSON.stringify(dataKonteks.targetKeuangan, null, 2));
-    console.log("=== DEBUG REKAP KATEGORI DITERIMA AI SERVICE ==="); // 💡 🆕 Log debug untuk rekap kategori
+    console.log("=== DEBUG REKAP KATEGORI DITERIMA AI SERVICE ===");
     console.log(JSON.stringify(dataKonteks.rekapKategori, null, 2));
     console.log("=======================================");
 
@@ -51,11 +52,10 @@ export async function generateFinancialInsight(
       100
     ).toFixed(1);
 
-    // VALIDASI DAN FORMATTING TARGET KEUANGAN
+    // Validasi dan Formatting Target Keuangan
     const anyGoalsExist =
       dataKonteks.targetKeuangan && dataKonteks.targetKeuangan.length > 0;
 
-    // Menyusun string daftar target secara eksplisit untuk disodorkan ke prompt teks Gemini
     const teksDaftarTarget = anyGoalsExist
       ? dataKonteks.targetKeuangan
           .map(
@@ -72,9 +72,27 @@ export async function generateFinancialInsight(
       ? "\nPERINGATAN KETAT: Beberapa atau semua target keuangan di atas memiliki nominal terkumpul (currentAmount) bernilai 0. Jangan asumsikan sisa saldo saat ini sebagai dana target tersebut! Nyatakan secara spesifik target mana saja yang progresnya masih Rp 0 atau belum dimulai."
       : "";
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI yang cerdas sekaligus Data Scientist yang mampu menerjemahkan pola matematika rumit menjadi kesimpulan gaya hidup yang sangat seru dan mudah dipahami orang awam.
+    // Skema validasi output JSON terstruktur sesuai spesifikasi Zod/JSON-Schema
+    const jsonOutputSchema = {
+      type: "OBJECT",
+      properties: {
+        kategoriTerbesar: { type: "STRING" },
+        kondisiKesehatan: { type: "STRING" },
+        aiSaranText: { type: "STRING" },
+        reviewGoals: { type: "STRING" },
+      },
+      required: [
+        "kategoriTerbesar",
+        "kondisiKesehatan",
+        "aiSaranText",
+        "reviewGoals",
+      ],
+    };
+
+    // Eksekusi pemanggilan menggunakan rute Interactions API baru untuk performa stabil
+    const interaction = await ai.interactions.create({
+      model: "gemini-3.1-flash-lite",
+      input: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI yang cerdas sekaligus Data Scientist yang mampu menerjemahkan pola matematika rumit menjadi kesimpulan gaya hidup yang sangat seru dan mudah dipahami orang awam.
 
       Sistem baru saja melakukan pengelompokan data belanja (K-Means) dan menemukan posisi kelompok pengguna saat ini. Tugas Anda adalah menonjolkan karakteristik kelompok tersebut di awal ulasan menggunakan SATU KATA inti saja secara polos, tanpa menggunakan penekanan huruf tebal atau istilah teknis.
 
@@ -93,7 +111,7 @@ export async function generateFinancialInsight(
 
       Daftar pengeluaran terbaru bulan ini (lengkap dengan data Kategori): ${JSON.stringify(dataKonteks.transaksiTerakhir)}.
 
-      Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, dan sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
+      Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, and sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
       ${zeroProgressWarning}
 
       ATURAN BAHASA SANGAT KETAT (PANDUAN PENERJEMAHAN K-MEANS):
@@ -101,12 +119,10 @@ export async function generateFinancialInsight(
       - DILARANG KERAS menggunakan simbol Markdown atau tanda bintang bintang (seperti **) untuk menebalkan kata di dalam teks string. Tulis semua kata sebagai teks polos biasa.
       - Anda WAJIB menonjolkan hasil pengelompokan sistem dengan memberikan 'LABEL KARAKTER BELANJA' berupa SATU KATA SAJA (berupa kata sifat/pola perilaku dasar) langsung di dalam teks string tanpa format tebal.
       - Petakan status data numerik di atas menjadi klasifikasi 1 kata berikut:
-        * Jika Rasio Pengeluaran Rend < 40%): Wajib gunakan kata "Hemat".
+        * Jika Rasio Pengeluaran Rendah (< 40%): Wajib gunakan kata "Hemat".
         * Jika Rasio Pengeluaran Tinggi (> 60%) ATAU frekuensi transaksi banyak: Wajib gunakan kata "Boros".
         * Jika jumlah transaksi sedikit tapi nominalnya langsung melonjak besar: Wajib gunakan kata "Impulsif".
         * Jika berada di antara batas tersebut (40% - 60%), analisis secara mandiri rasio pengeluaran mereka dan berikan label 1 kata manusiawi yang relevan (Wajib pilih salah satu dari kata: "Stabil" atau "Wajar").
-
-      Tugas Utama Anda (Kembalikan jawaban murni dalam struktur JSON objek yang valid):
 
       Tugas Utama Anda (Kembalikan jawaban murni dalam struktur JSON objek yang valid):
       1. Tentukan 'kategoriTerbesar' dengan aturan format dan kondisional yang sangat ketat berikut:
@@ -132,35 +148,22 @@ export async function generateFinancialInsight(
       4. Berikan ulasan 'reviewGoals' sebanyak 1-2 kalimat yang menganalisis progres target keuangan mereka saat ini.
         - Anda WAJIB menyebutkan nama dari target keuangan mereka secara eksplisit.
         - Hubungkan bagaimana sisa saldo saat ini (${rasioTabunganTersisa}%) atau kecenderungan dari Karakter Belanja 1 kata mereka bulan ini (Hemat / Boros / Stabil / Impulsif) dalam membantu atau menghambat pencapaian target tersebut tanpa menggunakan format huruf tebal.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            kategoriTerbesar: { type: "STRING" },
-            kondisiKesehatan: { type: "STRING" },
-            aiSaranText: { type: "STRING" },
-            reviewGoals: { type: "STRING" },
-          },
-          required: [
-            "kategoriTerbesar",
-            "kondisiKesehatan",
-            "aiSaranText",
-            "reviewGoals",
-          ],
-        },
+      response_format: {
+        type: "text",
+        mime_type: "application/json",
+        schema: jsonOutputSchema,
       },
     });
 
-    if (response.text) {
-      return JSON.parse(response.text);
+    // Sesuai dokumentasi baru, ambil teks output terstruktur dari properti output_text
+    if (interaction.output_text) {
+      return JSON.parse(interaction.output_text);
     }
-    throw new Error("Respon kosong dari Gemini AI.");
+    throw new Error("Respon kosong dari Gemini Interactions API.");
   } catch (error) {
-    console.error(
-      "Gagal mendapatkan analisis dari Gemini AI Service, menggunakan logika fallback:",
-      error,
-    );
+    console.error("=== DETAIL ERROR GEMINI ASLI ===");
+    console.error(error);
+    console.error("================================");
 
     const pemasukanPenyebut = dataKonteks.totalPemasukan || 1;
     const rasioPengeluaranTersisa = (
@@ -173,7 +176,7 @@ export async function generateFinancialInsight(
         ? dataKonteks.targetKeuangan.map((g) => g.title).join(", ")
         : "tujuan keuangan";
 
-    // RETURN FALLBACK (Ambil data lokal jika server penuh/gagal)
+    // Kembalikan objek fallback lokal jika server Google down/mengalami overload eksternal
     return {
       kategoriTerbesar: "Memuat Data...",
       kondisiKesehatan: "Sistem Sibuk",
