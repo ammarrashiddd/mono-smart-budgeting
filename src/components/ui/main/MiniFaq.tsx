@@ -18,7 +18,7 @@ export default function MiniFaq() {
     {
       question: "Bagaimana cara AI mengelompokkan kategori belanja saya?",
       answer:
-        "Aplikasi kami menggunakan algoritma clustering (K-Means) untuk memetakan frekuensi dan ukuran nominal transaksi Anda secara otomatis. Sistem akan langsung mencocokkannya ke dalam kategori resmi yang pas tanpa perlu konfigurasi manual.",
+        "Aplikasi kami menggunakan algoritma klasifikasi untuk memetakan frekuensi dan ukuran nominal transaksi Anda secara otomatis. Sistem akan langsung mencocokkannya ke dalam kategori resmi yang pas tanpa perlu konfigurasi manual.",
     },
     {
       question: "Apa itu Aturan Keuangan Ideal 50/30/20 yang digunakan AI?",

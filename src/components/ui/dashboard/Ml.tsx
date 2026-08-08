@@ -14,9 +14,7 @@ interface DataPoint {
 
 interface KmeansResult {
   k: number;
-  wcss: number | string;
   points: DataPoint[];
-  elbow?: Array<{ k: number; wcss: number }>;
 }
 
 interface MlProps {
@@ -55,7 +53,7 @@ export default function Ml({ data, isLoading }: MlProps) {
           </div>
         </div>
 
-        {/* BOX : Scatter Plot K-Means */}
+        {/* BOX : Scatter Plot Klasifikasi */}
         <div className="w-full mb-6">
           <div className="h-full bg-secondary/1 rounded-lg border border-secondary/15 py-3 animate-in fade-in duration-300">
             <ScatterplotClaster data={data} COLORS={COLORS} />

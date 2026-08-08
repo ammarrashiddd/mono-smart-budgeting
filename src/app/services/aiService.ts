@@ -10,9 +10,7 @@ interface FinancialInsightInput {
   assignedCluster: number;
   kmeansCacheData: {
     optimalK: number;
-    wcss: number;
     points: any;
-    elbow: any;
     totalTx: number;
     month: number;
     year: number;
@@ -94,7 +92,7 @@ export async function generateFinancialInsight(
       model: "gemini-3.1-flash-lite",
       input: `Anda adalah seorang Perencana Keuangan (Financial Planner) AI yang cerdas sekaligus Data Scientist yang mampu menerjemahkan pola matematika rumit menjadi kesimpulan gaya hidup yang sangat seru dan mudah dipahami orang awam.
 
-      Sistem baru saja melakukan pengelompokan data belanja (K-Means) dan menemukan posisi kelompok pengguna saat ini. Tugas Anda adalah menonjolkan karakteristik kelompok tersebut di awal ulasan menggunakan SATU KATA inti saja secara polos, tanpa menggunakan penekanan huruf tebal atau istilah teknis.
+      Sistem baru saja melakukan klasifikasi data belanja dan menemukan posisi kelompok pengguna saat ini. Tugas Anda adalah menonjolkan karakteristik kelompok tersebut di awal ulasan menggunakan SATU KATA inti saja secara polos, tanpa menggunakan penekanan huruf tebal atau istilah teknis.
 
       Data statistik ringkas bulan berjalan ini:
       - Total Pemasukan: ${dataKonteks.totalPemasukan}
@@ -114,8 +112,8 @@ export async function generateFinancialInsight(
       Sebagai panduan numerik, rasio pengeluaran riil pengguna saat ini adalah ${rasioPengeluaranTersisa}% dari total pemasukan, and sisa saldo (potensi tabungan) mereka adalah ${rasioTabunganTersisa}% dari total pemasukan.
       ${zeroProgressWarning}
 
-      ATURAN BAHASA SANGAT KETAT (PANDUAN PENERJEMAHAN K-MEANS):
-      - DILARANG KERAS menggunakan kata "Klaster", "Cluster", "Centroid", "K-Means", "K=3", atau angka indeks "0, 1, 2" pada output teks.
+      ATURAN BAHASA SANGAT KETAT (PANDUAN PENERJEMAHAN KLASIFIKASI):
+      - DILARANG KERAS menggunakan kata "Klaster", "Cluster", "Centroid", "Klasifikasi", "K=3", atau angka indeks "0, 1, 2" pada output teks.
       - DILARANG KERAS menggunakan simbol Markdown atau tanda bintang bintang (seperti **) untuk menebalkan kata di dalam teks string. Tulis semua kata sebagai teks polos biasa.
       - Anda WAJIB menonjolkan hasil pengelompokan sistem dengan memberikan 'LABEL KARAKTER BELANJA' berupa SATU KATA SAJA (berupa kata sifat/pola perilaku dasar) langsung di dalam teks string tanpa format tebal.
       - Petakan status data numerik di atas menjadi klasifikasi 1 kata berikut:

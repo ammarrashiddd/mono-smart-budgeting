@@ -75,9 +75,7 @@ model KmeansCache {
   year            Int      
   optimalK        Int
   assignedCluster Int
-  wcss            Float
   points          Json     
-  elbow           Json     
   totalTx         Int
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

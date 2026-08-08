@@ -1,9 +1,10 @@
 "use client";
+import { Suspense } from "react";
 import AuthForm from "@/components/form/AuthForm";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
@@ -60,5 +61,19 @@ export default function AuthPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen w-full items-center justify-center bg-white">
+          <p className="text-secondary">Loading...</p>
+        </main>
+      }
+    >
+      <AuthContent />
+    </Suspense>
   );
 }

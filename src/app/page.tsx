@@ -25,10 +25,6 @@ export default function Home() {
         </div>
 
         <div className="px-6 md:px-12 mt-16">
-          <WellnessRadar />
-        </div>
-
-        <div className="px-6 md:px-12 mt-16">
           <MiniFaq />
         </div>
 

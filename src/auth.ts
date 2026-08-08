@@ -33,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return {
             id: user.id,
             username: user.username,
-            name: user.username, // NextAuth memerlukan properti name/email dasar
+            name: user.username,
           };
         }
 

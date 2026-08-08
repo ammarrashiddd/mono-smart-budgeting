@@ -18,10 +18,6 @@ export default function BeforeAfterSimulation() {
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-[1.1] max-w-2xl">
             Masih Zaman Catat Uang Secara Manual?
           </h2>
-          <p className="text-secondary/80 max-w-md text-sm md:text-base font-medium">
-            Lihat perbandingan bagaimana asisten pintar kami mengubah cara ribet
-            menjadi super simpel.
-          </p>
         </div>
 
         {/* Tab Kontrol - Menggunakan variasi warna secondary/5 */}
@@ -91,9 +87,8 @@ export default function BeforeAfterSimulation() {
                     ✕
                   </span>
                   <p className="text-secondary/90 text-sm md:text-base font-medium">
-                    Kategori{" "}
-                    <span className="underline decoration-2">"Lain-lain"</span>{" "}
-                    menumpuk dan membingungkan di akhir bulan.
+                    Kategori "Lain-lain" menumpuk dan membingungkan di akhir
+                    bulan.
                   </p>
                 </li>
                 <li className="flex items-start">

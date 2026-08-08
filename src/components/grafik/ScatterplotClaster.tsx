@@ -19,9 +19,7 @@ interface DataPoint {
 
 interface KmeansResult {
   k: number;
-  wcss: number | string;
   points: DataPoint[];
-  elbow?: Array<{ k: number; wcss: number }>; // Array koordinat metode elbow dari backend
 }
 
 interface MlProps {

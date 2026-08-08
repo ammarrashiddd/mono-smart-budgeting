@@ -42,8 +42,8 @@ export default function DashboardPage() {
 
     try {
       // Ambil semua data secara paralel menggunakan Promise.allSettled
-      const [kmeansRes, aiRes, chartRes] = await Promise.allSettled([
-        fetch("/api/analysis/kmeans"),
+      const [classificationRes, aiRes, chartRes] = await Promise.allSettled([
+        fetch("/api/analysis/classification"),
         fetch("/api/analysis/ai-insight"),
         fetch("/api/analysis/charts"),
       ]);
@@ -62,55 +62,58 @@ export default function DashboardPage() {
         return;
       }
 
-      // 🔍 LANGKAH SCOUTING 2: Cek Jaringan/API K-Means
+      // 🔍 LANGKAH SCOUTING 2: Cek Jaringan/API Klasifikasi
       if (
-        kmeansRes.status === "rejected" ||
-        (kmeansRes.status === "fulfilled" && !kmeansRes.value.ok)
+        classificationRes.status === "rejected" ||
+        (classificationRes.status === "fulfilled" &&
+          !classificationRes.value.ok)
       ) {
         if (isManualTrigger || showAnalysis) {
           triggerGlobalError(
-            "Komputasi Klaster Gagal",
-            "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
+            "Komputasi Klasifikasi Gagal",
+            "Gagal memproses perhitungan model matematika klasifikasi finansial pada database.",
           );
         }
         return;
       }
 
-      // 🔍 LANGKAH SCOUTING 3: Cek Validitas Jumlah Transaksi K-Means Terbaru
-      let kmeansData = await (kmeansRes.value as Response).json();
+      // 🔍 LANGKAH SCOUTING 3: Cek Validitas Jumlah Transaksi Klasifikasi Terbaru
+      let classificationData = await (
+        classificationRes.value as Response
+      ).json();
 
       if (
-        kmeansData?.isInsufficient ||
-        !kmeansData?.points ||
-        kmeansData.points.length <= 6
+        classificationData?.isInsufficient ||
+        !classificationData?.points ||
+        classificationData.points.length < 1
       ) {
         // Coba bypass data cache internal server dengan force fetch terbaru
-        const forceRes = await fetch("/api/analysis/kmeans?force=true");
+        const forceRes = await fetch("/api/analysis/classification?force=true");
         if (forceRes.ok) {
-          const freshKmeansData = await forceRes.json();
+          const freshClassificationData = await forceRes.json();
           if (
-            !freshKmeansData?.isInsufficient &&
-            freshKmeansData?.points?.length > 6
+            !freshClassificationData?.isInsufficient &&
+            freshClassificationData?.points?.length >= 1
           ) {
-            kmeansData = freshKmeansData;
+            classificationData = freshClassificationData;
           }
         }
       }
 
       // Pengecekan final setelah usaha force update
       if (
-        kmeansData?.isInsufficient ||
-        !kmeansData?.points ||
-        kmeansData.points.length <= 6
+        classificationData?.isInsufficient ||
+        !classificationData?.points ||
+        classificationData.points.length < 1
       ) {
         // 💡 JIKA KONDISI PERTAMA KALI / SILENT CHECK: Jangan lempar error, biarkan user klik tombol manual nanti
         if (isManualTrigger || showAnalysis) {
-          const totalTx = kmeansData?.points?.length || 0;
+          const totalTx = classificationData?.points?.length || 0;
           triggerGlobalError(
             "Data Transaksi Belum Mencukupi",
-            `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal 7 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
+            `Sistem mendeteksi transaksi pengeluaran anda baru berjumlah ${totalTx} data. Analisis data memerlukan minimal 1 transaksi pengeluaran agar bisa berhasil.`,
           );
-          setMlData(kmeansData);
+          setMlData(classificationData);
         }
         return;
       }
@@ -133,7 +136,7 @@ export default function DashboardPage() {
       const aiInsightData = await (aiRes.value as Response).json();
       const statsChartData = await (chartRes.value as Response).json();
 
-      setMlData(kmeansData);
+      setMlData(classificationData);
       setAiData(aiInsightData);
       setChartsData(statsChartData);
 
@@ -176,7 +179,7 @@ export default function DashboardPage() {
 
     try {
       // Kirim perintah komputasi ulang ke backend clusterizer
-      const res = await fetch("/api/analysis/kmeans?force=true", {
+      const res = await fetch("/api/analysis/classification?force=true", {
         method: "POST",
       });
 
@@ -188,12 +191,12 @@ export default function DashboardPage() {
           const totalTx = errorData?.points?.length || 0;
           triggerGlobalError(
             "Data Transaksi Belum Mencukupi",
-            `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma K-Means Clustering memerlukan minimal 7 transaksi pengeluaran agar hasil pemetaan klaster akurat.`,
+            `Sistem mendeteksi transaksi pengeluaran Anda baru berjumlah ${totalTx} data. Algoritma klasifikasi memerlukan minimal 7 transaksi pengeluaran agar hasil pemetaan akurat.`,
           );
         } else {
           triggerGlobalError(
-            "Komputasi Klaster Gagal",
-            "Gagal memproses perhitungan model matematika klasterisasi finansial pada database.",
+            "Komputasi Klasifikasi Gagal",
+            "Gagal memproses perhitungan model matematika klasifikasi finansial pada database.",
           );
         }
 
@@ -270,7 +273,7 @@ export default function DashboardPage() {
           ) : (
             <>
               <ChartBar size={20} weight="bold" />
-              Mulai Analisis AI & K-Means
+              Mulai Analisis AI & Klasifikasi
             </>
           )}
         </button>

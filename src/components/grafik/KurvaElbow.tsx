@@ -18,9 +18,7 @@ interface DataPoint {
 
 interface KmeansResult {
   k: number;
-  wcss: number | string;
   points: DataPoint[];
-  elbow?: Array<{ k: number; wcss: number }>; // Array koordinat metode elbow dari backend
 }
 
 interface MlProps {
@@ -54,7 +52,7 @@ export default function KurvaElbow({ data }: MlProps) {
       <div className="w-full h-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={data?.elbow}
+            data={[]}
             margin={{ top: 10, right: 15, bottom: 0, left: -15 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

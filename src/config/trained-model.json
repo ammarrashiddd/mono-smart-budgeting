@@ -1,0 +1,56 @@
+{
+  "trainedAt": "2026-08-02T06:25:25.278Z",
+  "optimalKSelected": 3,
+  "totalData": 1080,
+  "wcssFinal": 64.8322,
+  "normalization": {
+    "xMin": 1,
+    "xMax": 31,
+    "yMin": 1050,
+    "yMax": 2066451
+  },
+  "centroids": [
+    {
+      "cluster": 0,
+      "label": "Low/Hemat (Pengeluaran Rendah)",
+      "x": 0.6973,
+      "y": 0.1759
+    },
+    {
+      "cluster": 1,
+      "label": "Medium/Sedang (Konsumsi Wajar)",
+      "x": 0.1826,
+      "y": 0.3758
+    },
+    {
+      "cluster": 2,
+      "label": "High/Impulsif (Pengeluaran Tinggi)",
+      "x": 0.6877,
+      "y": 0.6536
+    }
+  ],
+  "meta": {
+    "allKEvaluations": [
+      {
+        "k": 1,
+        "wcss": 169.1587
+      },
+      {
+        "k": 2,
+        "wcss": 99.0209
+      },
+      {
+        "k": 3,
+        "wcss": 64.8322
+      },
+      {
+        "k": 4,
+        "wcss": 42.8053
+      },
+      {
+        "k": 5,
+        "wcss": 35.8417
+      }
+    ]
+  }
+}

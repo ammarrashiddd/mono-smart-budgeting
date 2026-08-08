@@ -9,9 +9,7 @@ interface SaveHistoryParams {
   optimalK: number;
   assignedCluster: number;
   rawKmeansData: {
-    wcss: number;
     points: any;
-    elbow: any;
     totalTx: number;
     month: number; // Tangkap info bulan berjalan
     year: number; // Tangkap info tahun berjalan
@@ -24,7 +22,7 @@ export async function saveFinancialAnalysisHistory({
   assignedCluster,
   rawKmeansData,
 }: SaveHistoryParams) {
-  // Ekstrak waktu bulan dan tahun dari payload K-Means
+  // Ekstrak waktu bulan dan tahun dari payload klasifikasi
   const { month, year } = rawKmeansData;
 
   // 1. Ambil data kalkulasi murni finansial HANYA pada bulan berjalan
@@ -107,9 +105,7 @@ export async function saveFinancialAnalysisHistory({
       assignedCluster,
       kmeansCacheData: {
         optimalK,
-        wcss: rawKmeansData.wcss,
         points: rawKmeansData.points,
-        elbow: rawKmeansData.elbow,
         totalTx: rawKmeansData.totalTx,
         month,
         year,
@@ -166,7 +162,7 @@ export async function saveFinancialAnalysisHistory({
     },
   });
 
-  // B. Menampung hasil create ke tabel log riwayat klasterisasi (ClusterHistory)
+  // B. Menampung hasil create ke tabel log riwayat klasifikasi (ClusterHistory)
   const newHistory = await prisma.clusterHistory.create({
     data: {
       userId,

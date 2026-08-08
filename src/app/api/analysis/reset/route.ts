@@ -21,7 +21,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Cache K-Means dan AiInsight berhasil dibersihkan.",
+      message: "Cache klasifikasi dan AiInsight berhasil dibersihkan.",
     });
   } catch (error) {
     console.error("Gagal menghapus cache analisis:", error);

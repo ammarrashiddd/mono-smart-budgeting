@@ -39,6 +39,20 @@ export async function GET() {
       "Des",
     ];
 
+    const categoryLabelMap: Record<string, string> = {
+      MAKANAN_MINUMAN: "Makanan & Minuman",
+      TAGIHAN: "Tagihan",
+      TRANSPORTASI: "Transportasi",
+      PENDIDIKAN: "Pendidikan",
+      KESEHATAN: "Kesehatan",
+      HIBURAN_GAYA_HIDUP: "Hiburan & Gaya Hidup",
+      BELANJA_FASHION: "Belanja Fashion",
+      HOBI: "Hobi",
+      PEMASUKAN: "Pemasukan",
+      INVESTASI_TABUNGAN: "Investasi & Tabungan",
+      LAIN_LAIN: "Lainnya",
+    };
+
     // 1. Inisialisasi struktur data dasar untuk grafik tren
     const chartData = namaBulan.map((bulan) => ({
       name: bulan,
@@ -64,7 +78,7 @@ export async function GET() {
         const absNominal = Math.abs(nominal);
         chartData[monthIndex].pengeluaran += absNominal;
 
-        const kategori = tx.description || "Lainnya";
+        const kategori = categoryLabelMap[tx.category] || "Lainnya";
 
         // Inisialisasi struktur map jika kategori belum terdaftar
         if (!categoryMap[kategori]) {
