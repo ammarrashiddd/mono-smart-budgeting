@@ -149,3 +149,15 @@ prisma/
 	schema.prisma         Model database dan enum kategori transaksi
 	migrations/           Riwayat perubahan schema database
 ```
+
+## Preview Aplikasi
+
+<p align="center">
+  <img width="2800" height="5662" alt="Landing Page Smart Budgeting" src="https://github.com/user-attachments/assets/255c593a-ccbb-460e-a3b1-82c4e3d43064" />
+</p>
+
+<p align="center">
+  <img width="2800" height="5800" alt="Dashboard Smart Budgeting" src="https://github.com/user-attachments/assets/96d023d2-e614-41f9-b11e-bf9226f9375e" />
+</p>
+
+---
