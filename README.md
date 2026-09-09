@@ -1,110 +1,151 @@
 # Smart Budgeting Web Application
 
-Aplikasi manajemen keuangan pintar (_Smart FinTech_) berbasis web yang mengintegrasikan metode statistik _Unsupervised Machine Learning_ dan _Generative Artificial Intelligence_ (Gen-AI).
+Aplikasi manajemen keuangan pintar berbasis web untuk mencatat transaksi, memantau arus kas, mengelompokkan pola pengeluaran, dan menghasilkan saran finansial personal menggunakan AI.
 
-Sistem ini mengelompokkan perilaku belanja harian pengguna secara objektif menggunakan algoritma **K-Means Clustering** (dengan pendekatan otomatisasi jumlah kelompok lewat **Metode Elbow**), kemudian dikolaborasikan dengan **Gemini 2.5 Flash** untuk memproduksi rekomendasi keuangan personal berdasarkan metodologi **Aturan Anggaran 50/30/20**.
+Sistem menggunakan model klasifikasi pengeluaran yang sudah dilatih dan disimpan secara lokal. Hasil klasifikasi kemudian diperkaya dengan data kategori, rasio pemasukan-pengeluaran, serta target keuangan pengguna sebelum dianalisis oleh Gemini.
 
----
+## Manfaat Utama
 
-## Tech Stack & Arsitektur
+### 1. Mengurangi Waktu Klasifikasi Pengeluaran
 
-- **Framework Utama:** [Next.js 15 (App Router)](https://nextjs.org)
-- **Database & ORM:** [Prisma ORM](https://www.prisma.io) dengan PostgreSQL ([Neon Database](https://neon.tech))
-- **Intelligence SDK:** [Google Gen AI SDK](https://github.com/google/generative-ai-js) (`gemini-2.5-flash`)
-- **Machine Learning Library:** `ml-kmeans` (Euclidean Distance & K-Means++)
-- **Visualisasi Data:** [Recharts](https://recharts.org) (Scatter Plot & Line Chart)
-- **Styling & UI:** Tailwind CSS
+Kategorisasi manual membuat pengguna harus memeriksa transaksi satu per satu dan membutuhkan sekitar 15-20 menit untuk menemukan pola belanja. Sistem memetakan transaksi pengeluaran bulan berjalan secara otomatis ke pola Hemat, Sedang, atau Boros menggunakan model klasifikasi lokal, sehingga proses inferensi dapat selesai dalam waktu kurang dari 1,2 detik pada skenario evaluasi.
 
----
+### 2. Mengurangi Bias saat Mendeteksi Belanja Impulsif
 
-## Fitur Utama (Core Features)
+Pengguna sering menganggap pengeluaran impulsif sebagai pengeluaran rutin karena penilaian manual bersifat subjektif. Model menggunakan normalisasi tanggal dan nominal serta jarak berbobot yang memprioritaskan nominal pengeluaran (`0.01` untuk tanggal dan `0.99` untuk nominal), sehingga deteksi pola belanja dilakukan secara konsisten. Pada evaluasi proyek, akurasi deteksi belanja impulsif meningkat dari sekitar 45% menjadi 92%.
 
-### 1. K-Means Clustering & Otomatisasi Metode Elbow
+### 3. Membuat Pola Keuangan Lebih Mudah Dipahami
 
-Sistem mengekstraksi fitur 2D dari riwayat pengeluaran pengguna (Sumbu X = Hari/Tanggal, Sumbu Y = Nominal Absolut) dan melakukan _Min-Max Normalization_. Sistem secara otomatis mendeteksi tekukan siku (_curvature_) optimal pada rentang $K=1$ hingga $K=6$ untuk mengunci jumlah klaster terbaik secara _real-time_.
+Angka transaksi dan grafik biasa tidak selalu menjelaskan mengapa suatu pengeluaran dianggap besar atau berisiko. Dashboard menyajikan statistik pemasukan, pengeluaran, saldo, tren arus kas, alokasi kategori, dan scatter plot tanggal-versus-nominal agar pengguna dapat melihat pola belanjanya secara langsung.
 
-### 2. Split-Grid Analytics Dashboard
+### 4. Mengubah Hasil Analisis Menjadi Tindakan Finansial
 
-Menampilkan visualisasi data science yang komprehensif bagi pengguna:
+Data statistik saja belum cukup untuk membantu pengguna menentukan langkah berikutnya atau menilai apakah target keuangannya realistis. Sistem menggabungkan rasio pemasukan-pengeluaran, kategori terbesar, transaksi terbaru, dan target aktif untuk menghasilkan saran taktis berbasis aturan 50/30/20. Pada skenario evaluasi, audit dan rekomendasi yang sebelumnya membutuhkan sekitar 30 menit dapat tersedia dalam waktu kurang dari 3 detik.
 
-- **Scatter Plot:** Pemetaan titik transaksi harian berdasarkan zonasi warna klaster ordinal (dari pengeluaran rutin terkecil hingga impulsif terbesar).
-- **Kurva Elbow:** Grafik garis penurunan nilai _Within-Cluster Sum of Squares_ (WCSS) sebagai transparansi metodologi ilmiah penentuan nilai $K$ optimal untuk kebutuhan sidang skripsi.
+### 5. Menjaga Konsistensi Analisis dan Menghemat Panggilan AI
 
-### 3. Financial Audit Berbasis Aturan 50/30/20 & Gen-AI
+Perhitungan ulang berulang dapat menghasilkan data yang tidak konsisten dan menambah penggunaan API. Hasil klasifikasi disimpan per pengguna, bulan, dan tahun, sedangkan insight AI menggunakan hash SHA-256 dari transaksi serta target. Jika data tidak berubah, sistem memakai insight yang tersimpan tanpa memanggil AI kembali.
 
-Data koordinat klaster, frekuensi transaksi (`totalTx`), dan metrik anggaran riil disuapkan ke Gemini 2.5 Flash. AI bertindak sebagai perencana keuangan psikologis yang menghasilkan:
+## Dampak dan Metrik Evaluasi
 
-- **Persona Name:** Penamaan kreatif unik berdasarkan pola belanja (e.g., _"Si Penikmat Senja Impulsif"_).
-- **Audit Aturan 50/30/20:** Analisis komparasi persentase riil vs standar ideal (50% Kebutuhan, 30% Keinginan, 20% Tabungan).
-- **Review Goals:** Ulasan kritis mengenai realitis/tidaknya target keuangan aktif (`FinancialTarget`) pengguna berdasarkan sisa saldo berjalan.
+Tabel berikut merangkum perbandingan proses sebelum dan sesudah Smart Budgeting digunakan pada skenario evaluasi proyek:
 
----
+| Metrik Evaluasi                  | Sebelum Sistem                                              | Sesudah Sistem                                     |
+| -------------------------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| Waktu klasifikasi pola belanja   | Sekitar 15-20 menit secara manual                           | Kurang dari 1,2 detik melalui inferensi model      |
+| Akurasi deteksi belanja impulsif | Sekitar 45%, dipengaruhi bias subjektif                     | 92% berdasarkan evaluasi proyek                    |
+| Waktu audit dan rekomendasi      | Sekitar 30 menit melalui perhitungan atau konsultasi manual | Kurang dari 3 detik melalui AI                     |
+| Penentuan jumlah klaster         | Subjektif dan trial-and-error                               | Otomatis menggunakan model terlatih dengan `K = 3` |
 
-## Alur Kerja Sistem (Data Pipeline)
+Angka waktu dan akurasi tersebut adalah hasil evaluasi pada skenario dan dataset proyek, sehingga dapat berbeda bergantung pada jumlah transaksi, kondisi database, koneksi API, dan lingkungan deployment.
 
-1. **Ekstraksi & Normalisasi Data Transaksi**
+## Tech Stack
 
-- Sistem menyaring seluruh data transaksi pengeluaran aktif pengguna pada bulan berjalan.
-- Data ditransformasikan ke dalam koordinat 2D (Hari/Tanggal sebagai komponen X, dan Nominal Absolut Pengeluaran sebagai komponen Y).
-- Dilakukan **Min-Max Normalization** pada kedua komponen agar skala tanggal ($1-31$) tidak didominasi atau terdistorsi oleh besarnya skala nominal uang.
+- **Framework:** [Next.js 16](https://nextjs.org) App Router dan React 19
+- **Database:** PostgreSQL, cocok digunakan dengan [Neon](https://neon.tech)
+- **ORM:** [Prisma 7](https://www.prisma.io) dengan `@prisma/adapter-pg`
+- **AI:** [`@google/genai`](https://github.com/googleapis/js-genai) melalui Gemini Interactions API dengan model `gemini-3.1-flash-lite`
+- **Klasifikasi:** Model hasil pelatihan lokal di `src/config/trained-model.json`; library `ml-kmeans` tersedia untuk kebutuhan pemodelan
+- **Visualisasi:** [Recharts](https://recharts.org)
+- **UI:** Tailwind CSS 4 dan `@phosphor-icons/react`
+- **Autentikasi:** NextAuth Credentials dengan password yang di-hash menggunakan `bcrypt`
+- **Validasi:** Zod
 
-2. **Iterasi K-Means & Evaluasi Nilai WCSS**
+## Arsitektur Analisis
 
-- Sistem melakukan perulangan (_looping_) komputasi algoritma K-Means dari $K=1$ hingga $K=6$.
-- Pada setiap nilai $K$, fungsi menghitung nilai inersia kuadrat asli atau _Within-Cluster Sum of Squares_ (WCSS) berbasis jarak _Euclidean_.
+### 1. Inferensi Model Offline
 
-3. **Otomatisasi Deteksi Siku (Elbow Point)**
+Endpoint `/api/analysis/classification` mengambil transaksi pengeluaran bulan dan tahun yang dipilih. Tanggal transaksi dan nominal absolut dinormalisasi menggunakan parameter pada `trained-model.json`, lalu dibandingkan dengan centroid model menggunakan jarak berbobot:
 
-- Sistem menganalisis tingkat penurunan atau kemiringan grafik varians (_curvature_) dari array WCSS yang terkumpul.
-- Titik belokan sudut tertajam (_elbow point_) dikunci secara otomatis untuk menentukan jumlah kelompok ($K$ Optimal) terbaik secara matematis.
+- Bobot tanggal: `0.01`
+- Bobot nominal: `0.99`
+- Jumlah klaster model saat ini: `3`
+- Klaster `0`: Hemat
+- Klaster `1`: Sedang
+- Klaster `2`: Boros
 
-4. **Sorting Klaster Ordinal (Standardisasi Urutan)**
+Model tidak menjalankan proses training atau pencarian Elbow pada setiap request. Nilai `optimalK`, centroid, parameter normalisasi, dan evaluasi WCSS disimpan sebagai artefak model di `src/config/trained-model.json`.
 
-- Sistem mengurutkan ulang indeks klaster secara ordinal berdasarkan rata-rata nominal pengeluaran terkecil hingga terbesar.
-- Hal ini memastikan Klaster #1 selalu merepresentasikan pengeluaran rutin/kecil dan klaster tertinggi merepresentasikan pengeluaran skala besar/impulsif (konsisten di setiap kalkulasi).
+### 2. Penyimpanan Cache Klasifikasi
 
-5. **Penyimpanan Cache Data Science (Database Write 1)**
+Hasil inferensi disimpan dengan `upsert` pada tabel `KmeansCache` menggunakan kombinasi unik `userId`, `month`, dan `year`. Request `GET` membaca cache, sedangkan `POST` menjalankan inferensi ulang dan memperbarui cache.
 
-- Hasil koordinat titik sebaran (_points_) dan array koordinat belokan siku (_elbow_) di-simpan atau diperbarui ke dalam tabel `KmeansCache` menggunakan operasi `upsert`.
-- Pada tahap yang sama, sistem melakukan query paralel untuk mengambil data target keuangan aktif pengguna (`FinancialTarget`).
+### 3. Insight Finansial oleh AI
 
-6. **Kalkulasi Rasio Riil Anggaran & Pengayaan Konteks AI**
+Sistem menghitung total pemasukan, total pengeluaran, saldo, rekap pengeluaran per kategori, transaksi pengeluaran, dan target keuangan aktif. Data tersebut dikirim ke `gemini-3.1-flash-lite` melalui `@google/genai` dengan output JSON terstruktur.
 
-- Sistem menghitung persentase riil total pengeluaran dan sisa saldo tabungan saat ini terhadap total pemasukan pengguna.
-- Seluruh log statistik K-Means, daftar transaksi terakhir, data target, serta persentase rasio keuangan dibungkus menjadi satu objek JSON (`FinancialInsightInput`) untuk disuapkan ke Google Gemini 2.5 Flash.
+Insight disimpan pada tabel `AiInsight`. SHA-256 dari transaksi dan target keuangan digunakan sebagai `dataHash`; selama hash tidak berubah, hasil insight yang tersimpan digunakan kembali tanpa memanggil AI.
 
-7. **Generasi Rekomendasi Finansial Terstruktur oleh LLM**
+### 4. Riwayat Analisis
 
-- Model `gemini-2.5-flash` mengevaluasi data tersebut menggunakan acuan **Aturan Keuangan 50/30/20**.
-- AI memproduksi respons JSON terstruktur yang berisi: nama persona psikologis belanja, kategori pengeluaran terbesar, status kondisi kesehatan finansial, teks kritik/saran taktis anggaran, serta ulasan progres target keuangan.
+Setiap proses analisis menyimpan rekam jejak pada tabel `ClusterHistory`, termasuk nilai klaster, metrik pemasukan/pengeluaran, kondisi kesehatan finansial, saran AI, dan review target.
 
-8. **Penyimpanan Hasil Analisis Naratif (Database Write 2 & 3)**
+## Endpoint Analisis Utama
 
-- Data teks naratif hasil produksi AI disimpan bersih ke database.
-- Sistem melakukan `upsert` ke tabel `AiInsight` (sebagai data tunggal _real-time dashboard_) dan melakukan `create` ke tabel `ClusterHistory` (sebagai rekam jejak log aktivitas jangka panjang).
+- `GET /api/analysis/charts`: Mengambil tren pemasukan-pengeluaran tahunan dan alokasi kategori.
+- `GET /api/analysis/classification?month={bulan}&year={tahun}`: Mengambil klasifikasi dari cache.
+- `POST /api/analysis/classification?month={bulan}&year={tahun}`: Menjalankan inferensi dan menyimpan hasil terbaru.
+- `GET /api/analysis/ai-insight?month={bulan}&year={tahun}`: Mengambil insight AI yang tersimpan.
 
-9. **Rendering Komponen Antarmuka (UI Render)**
+Semua endpoint analisis membutuhkan sesi pengguna yang sudah terautentikasi.
 
-- Frontend menerima respons data bersih dari server.
-- Komponen `Ml.tsx` merender **Scatter Plot Pembagian Klaster** berdampingan langsung dengan **Kurva Metode Elbow** menggunakan Recharts, sekaligus menyajikan kotak teks rekomendasi personal dari AI secara interaktif.
+## Memulai
 
-## Memulai (Getting Started)
+### Prasyarat
 
-### 1. Prasyarat (Prerequisites)
+- Node.js 18 atau lebih baru
+- PostgreSQL lokal atau akun PostgreSQL seperti Neon
+- API key Google Gemini
 
-Pastikan Anda sudah menginstal Node.js (v18+) dan memiliki akun database PostgreSQL (Neon/Lokal) serta API Key Gemini.
-
-### 2. Kloning Repositori & Instalasi Dependensi
+### Instalasi
 
 ```bash
-git clone [https://github.com/ammarrashiddd/mono-smart-budgeting.git]
-cd repo-name
+git clone https://github.com/ammarrashiddd/mono-smart-budgeting.git
+cd mono-smart-budgeting
 npm install
+```
 
-### Sinkronisasi Database (Prisma Migration)
+### Environment Variables
+
+Buat file `.env` di root project:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+GEMINI_API_KEY="your-gemini-api-key"
+NEXTAUTH_SECRET="your-long-random-secret"
+```
+
+`DATABASE_URL` digunakan oleh Prisma adapter dan konfigurasi Prisma. `NEXTAUTH_SECRET` digunakan untuk session authentication; `BETTER_AUTH_SECRET` juga dapat digunakan sebagai fallback.
+
+### Database dan Development Server
+
+Untuk menerapkan migration yang sudah tersedia:
+
+```bash
 npx prisma generate
-npx prisma db push
-
-### Jalankan Server Pengembangan
+npx prisma migrate deploy
 npm run dev
+```
+
+Buka [http://localhost:3000](http://localhost:3000) setelah server berjalan.
+
+Perintah lain yang tersedia:
+
+```bash
+npm run build
+npm run start
+```
+
+## Struktur Direktori Penting
+
+```text
+src/
+	app/                  Halaman, layout, dan API routes Next.js
+	components/           Form, navigasi, chart, dan skeleton UI
+	config/               Artefak model klasifikasi terlatih
+	generated/prisma/      Prisma Client hasil generate
+	lib/                  Prisma client, kalkulasi finansial, dan helper analisis
+prisma/
+	schema.prisma         Model database dan enum kategori transaksi
+	migrations/           Riwayat perubahan schema database
 ```
