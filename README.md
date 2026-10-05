@@ -112,7 +112,7 @@ Buat file `.env` di root project:
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 GEMINI_API_KEY="your-gemini-api-key"
-NEXTAUTH_SECRET="your-long-random-secret"
+AUTH_SECRET="your-long-random-secret"
 ```
 
 `DATABASE_URL` digunakan oleh Prisma adapter dan konfigurasi Prisma. `NEXTAUTH_SECRET` digunakan untuk session authentication; `BETTER_AUTH_SECRET` juga dapat digunakan sebagai fallback.
